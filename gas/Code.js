@@ -36,9 +36,17 @@ function getTypeConfig_(type) {
 /*************************************************
  * Webアプリ
  *************************************************/
-function doGet() {
+function doGet(e) {
+  const parameters = e && e.parameter || {};
+  const allowedOrigins = getApiBridgeAllowedOrigins_();
   const template = HtmlService.createTemplateFromFile('ApiBridge.html');
-  template.allowedOrigins = getApiBridgeAllowedOrigins_();
+  template.allowedOrigins = allowedOrigins;
+  template.parentOrigin = allowedOrigins.indexOf(String(parameters.parentOrigin || '')) !== -1
+    ? String(parameters.parentOrigin)
+    : '';
+  template.channelNonce = /^\d+-[a-z0-9]+$/.test(String(parameters.nonce || ''))
+    ? String(parameters.nonce)
+    : '';
   return template.evaluate()
     .setTitle('掲示板 API')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);

@@ -1201,6 +1201,8 @@
   const gasApiPending = new Map();
   const gasApiQueue = [];
   let gasApiReady = false;
+  let gasApiWindow = null;
+  let gasApiOrigin = '';
   let gasApiConnectionError = null;
   let gasApiRequestId = 0;
   let gasApiHandshakeTimer = null;
@@ -1232,13 +1234,16 @@
 
   function sendGasApiRequest_(request) {
     try {
-      gasApiFrame.contentWindow.postMessage({
+      if (!gasApiWindow || !gasApiOrigin) {
+        throw new Error('GAS APIとの接続が確立されていません。');
+      }
+      gasApiWindow.postMessage({
         type: 'gas-api-request',
         nonce: GAS_API_NONCE,
         id: request.id,
         method: request.method,
         args: request.args
-      }, '*');
+      }, gasApiOrigin);
     } catch (error) {
       gasApiPending.delete(request.id);
       clearTimeout(request.timer);
@@ -1278,18 +1283,27 @@
     });
   }
 
-  window.addEventListener('message', function(event) {
-    if (event.source !== gasApiFrame.contentWindow) return;
+  function isGasApiOrigin_(origin) {
+    try {
+      const hostname = new URL(origin).hostname;
+      return hostname === 'script.google.com' ||
+        hostname === 'script.googleusercontent.com' ||
+        hostname.endsWith('-script.googleusercontent.com');
+    } catch (error) {
+      return false;
+    }
+  }
 
+  window.addEventListener('message', function(event) {
     const message = event.data;
     if (!message || message.nonce !== GAS_API_NONCE) return;
 
-    if (message.type === 'gas-api-error') {
-      rejectPendingGasApiCalls_(new Error(message.error || 'GAS APIとの接続に失敗しました。'));
-      return;
-    }
-
     if (message.type === 'gas-api-ready') {
+      if (!event.source || !isGasApiOrigin_(event.origin)) return;
+      if (gasApiWindow && event.source !== gasApiWindow) return;
+
+      gasApiWindow = event.source;
+      gasApiOrigin = event.origin;
       gasApiReady = true;
       gasApiConnectionError = null;
       if (gasApiHandshakeTimer) {
@@ -1302,6 +1316,18 @@
         gasApiPending.set(request.id, request);
         sendGasApiRequest_(request);
       }
+      return;
+    }
+
+    if (message.type === 'gas-api-error' && !gasApiWindow && isGasApiOrigin_(event.origin)) {
+      rejectPendingGasApiCalls_(new Error(message.error || 'GAS APIとの接続に失敗しました。'));
+      return;
+    }
+
+    if (event.source !== gasApiWindow || event.origin !== gasApiOrigin) return;
+
+    if (message.type === 'gas-api-error') {
+      rejectPendingGasApiCalls_(new Error(message.error || 'GAS APIとの接続に失敗しました。'));
       return;
     }
 
@@ -1326,11 +1352,9 @@
   } else {
     gasApiFrame.addEventListener('load', function() {
       gasApiReady = false;
+      gasApiWindow = null;
+      gasApiOrigin = '';
       gasApiConnectionError = null;
-      gasApiFrame.contentWindow.postMessage({
-        type: 'gas-api-init',
-        nonce: GAS_API_NONCE
-      }, '*');
 
       if (gasApiHandshakeTimer) clearTimeout(gasApiHandshakeTimer);
       gasApiHandshakeTimer = setTimeout(function() {
@@ -1342,7 +1366,10 @@
     gasApiFrame.addEventListener('error', function() {
       rejectPendingGasApiCalls_(new Error('GAS APIを読み込めませんでした。デプロイURLを確認してください。'));
     });
-    gasApiFrame.src = GAS_WEB_APP_URL;
+    const gasApiUrl = new URL(GAS_WEB_APP_URL);
+    gasApiUrl.searchParams.set('nonce', GAS_API_NONCE);
+    gasApiUrl.searchParams.set('parentOrigin', location.origin);
+    gasApiFrame.src = gasApiUrl.toString();
   }
 
   document.body.appendChild(gasApiFrame);
