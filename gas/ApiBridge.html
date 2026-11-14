@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<script>
+  const allowedOrigins = <?!= JSON.stringify(allowedOrigins) ?>;
+  const allowedMethods = new Set([
+    'checkAdminPassword',
+    'deleteCourtDutyFile',
+    'deleteItem',
+    'getAdminData',
+    'getCourtDutyFileData',
+    'getPublicData',
+    'getTopImageDataUrl',
+    'listCourtDutyFiles',
+    'logoutAdmin',
+    'saveDisplayOrder',
+    'saveItem',
+    'savePageAccessLog',
+    'saveSettings',
+    'saveTopAccessSummary',
+    'uploadCourtDutyFile'
+  ]);
+  let parentOrigin = '';
+  let channelNonce = '';
+
+  function postToParent_(event, message) {
+    event.source.postMessage(message, event.origin);
+  }
+
+  function respond_(event, request, success, result) {
+    postToParent_(event, {
+      type: 'gas-api-response',
+      nonce: channelNonce,
+      id: request.id,
+      success: success,
+      result: success ? result : undefined,
+      error: success ? undefined : String(result && result.message || result || 'GAS APIの処理に失敗しました。')
+    });
+  }
+
+  window.addEventListener('message', function(event) {
+    if (event.source !== window.parent || !event.data) return;
+
+    const message = event.data;
+    if (message.type === 'gas-api-init') {
+      if (!allowedOrigins.includes(event.origin)) {
+        postToParent_(event, {
+          type: 'gas-api-error',
+          nonce: message.nonce,
+          error: allowedOrigins.length
+            ? 'このサイトのオリジンはGITHUB_PAGES_ORIGINSに許可されていません。'
+            : 'GASのスクリプトプロパティGITHUB_PAGES_ORIGINSを設定してください。'
+        });
+        return;
+      }
+
+      parentOrigin = event.origin;
+      channelNonce = message.nonce;
+      postToParent_(event, { type: 'gas-api-ready', nonce: channelNonce });
+      return;
+    }
+
+    if (event.origin !== parentOrigin || message.nonce !== channelNonce ||
+        message.type !== 'gas-api-request') return;
+
+    if (typeof message.id !== 'string' || !allowedMethods.has(message.method) ||
+        !Array.isArray(message.args)) {
+      respond_(event, message, false, 'APIリクエストが正しくありません。');
+      return;
+    }
+
+    const runner = google.script.run
+      .withSuccessHandler(function(result) {
+        respond_(event, message, true, result);
+      })
+      .withFailureHandler(function(error) {
+        respond_(event, message, false, error);
+      });
+
+    try {
+      runner[message.method].apply(runner, message.args);
+    } catch (error) {
+      respond_(event, message, false, error);
+    }
+  });
+</script>
+</body>
+</html>

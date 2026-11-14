@@ -1,0 +1,2453 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>久喜ローンテニスクラブ掲示板</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+      background: #f4f7f8;
+      color: #333;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    /* =========================
+       全体
+    ========================= */
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: #f4f7f8;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 全ページ共通フッター */
+    .site-footer {
+      flex-shrink: 0;
+      width: 100%;
+      margin-top: auto;
+      padding: 16px 12px;
+      background: #ffffff;
+      color: #b0b0b0;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 2px;
+    }
+
+    .page {
+      display: none;
+      padding-bottom: 40px;
+    }
+
+    .page.active {
+      display: block;
+      flex: 1 0 auto;
+      width: 100%;
+    }
+
+    /* =========================
+       トップ画像
+    ========================= */
+
+    .hero {
+      position: relative;
+      width: 100%;
+      height: 240px;
+      overflow: hidden;
+      background: #ddd;
+    }
+
+    .hero img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .hero-overlay {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 45px 20px 20px;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.65));
+      color: white;
+    }
+
+    .hero-title {
+      font-size: 28px;
+      font-weight: bold;
+      text-shadow: 0 2px 5px rgba(0,0,0,.4);
+    }
+
+    .hero-subtitle {
+      margin-top: 4px;
+      font-size: 13px;
+      letter-spacing: 2px;
+      opacity: .9;
+    }
+
+    /* =========================
+       ページ最上部バナー
+    ========================= */
+
+    .site-banner {
+      display: none;
+      position: sticky;
+      top: 0;
+      z-index: 900;
+      width: 100%;
+      padding: 11px 16px;
+      background: #fff3cd;
+      color: #664d03;
+      border-bottom: 1px solid #ffecb5;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      text-align: center;
+    }
+
+    /* =========================
+       ホーム
+    ========================= */
+
+    .home-content {
+      padding: 20px 16px;
+    }
+
+    .menu-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .menu-card {
+      width: 100%;
+      height: 90px;
+      border: none;
+      border-radius: 15px;
+      background: white;
+      box-shadow: 0 3px 14px rgba(0,0,0,.08);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      text-align: left;
+      transition: transform .15s;
+    }
+
+    .menu-card:active {
+      transform: scale(.98);
+    }
+
+    .menu-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      background: #eef5f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 25px;
+      flex-shrink: 0;
+    }
+
+    .menu-text {
+      font-size: 17px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .menu-arrow {
+      margin-left: auto;
+      font-size: 22px;
+      color: #aaa;
+    }
+
+    /* =========================
+       ページヘッダー
+    ========================= */
+
+    .page-header {
+      background: white;
+      padding: 18px 18px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+    }
+
+    .back-button {
+      border: none;
+      background: none;
+      font-size: 24px;
+      margin-right: 10px;
+      padding: 0;
+    }
+
+    .page-title {
+      font-size: 21px;
+      font-weight: bold;
+    }
+
+    /* =========================
+       リスト
+    ========================= */
+
+    .list {
+      padding: 15px;
+    }
+
+    .list-card {
+      background: white;
+      border-radius: 14px;
+      padding: 17px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    }
+
+    .list-date {
+      font-size: 13px;
+      color: #777;
+      margin-bottom: 6px;
+    }
+
+    .list-title {
+      font-size: 17px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .list-content {
+      white-space: pre-wrap;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    /* お知らせ・イベントは文字サイズを2倍にする
+       （スケジュールは通常サイズのまま） */
+
+    #notices .list-date,
+    #events .list-date {
+      font-size: 20px;
+    }
+
+    #notices .list-title,
+    #events .list-title,
+    #schedules .list-title {
+      font-size: 26px;
+    }
+
+    #notices .list-content,
+    #events .list-content,
+    #schedules .list-content {
+      font-size: 21px;
+    }
+
+    /* ページ下部の戻るボタン */
+
+    .page-footer {
+      padding: 0 15px;
+    }
+
+    .page-footer .secondary-button {
+      margin-top: 0;
+      padding: 15px;
+      font-size: 17px;
+      background: #dcf0e2;
+      color: #1f6b43;
+    }
+
+    .global-footer {
+      flex-shrink: 0;
+      width: 100%;
+      margin-top: auto;
+      border-top: 1px solid #e4e7e8;
+      background: #f4f7f8;
+    }
+
+    .footer-inner {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 10px 16px 18px;
+    }
+
+    .footer-column {
+      border-bottom: 1px solid #e4e7e8;
+    }
+
+    .footer-column > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 4px;
+      color: #1d1d1f;
+      font-size: 12px;
+      font-weight: 600;
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .footer-column > summary::-webkit-details-marker { display: none; }
+    .footer-column > summary::marker { display: none; }
+
+    .footer-column > summary::after {
+      width: 8px;
+      height: 8px;
+      margin-right: 4px;
+      border-right: 1.5px solid #6e6e73;
+      border-bottom: 1.5px solid #6e6e73;
+      content: "";
+      transform: rotate(45deg);
+      transition: transform .2s ease;
+    }
+
+    .footer-column[open] > summary::after {
+      transform: rotate(-135deg);
+    }
+
+    .footer-column > summary:focus-visible,
+    .footer-column a:focus-visible {
+      outline: 2px solid #1f6b43;
+      outline-offset: 2px;
+    }
+
+    .footer-column ul {
+      margin: 0;
+      padding: 0 4px 14px;
+      list-style: none;
+    }
+
+    .footer-column li + li {
+      margin-top: 8px;
+    }
+
+    .footer-column a {
+      display: flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #f4f7f8;
+      color: #35634b;
+      font-size: 11px;
+      line-height: 1.5;
+      text-decoration: none;
+      transition: background-color .2s ease, color .2s ease;
+    }
+
+    .footer-column a:hover {
+      background: #e9eeee;
+      color: #1f6b43;
+    }
+
+    .footer-column a span {
+      flex-shrink: 0;
+      color: #7b8b81;
+      font-size: 15px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 50px 20px;
+      color: #999;
+    }
+
+    /* =========================
+       連絡先
+    ========================= */
+
+    .contact-card {
+      margin: 16px;
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+      white-space: pre-wrap;
+      line-height: 1.8;
+    }
+
+    /* =========================
+       管理画面
+    ========================= */
+
+    .admin-box {
+      margin: 20px 16px;
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    }
+
+    .admin-box h2 {
+      margin-top: 0;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    /* パスワード表示チェックボックス */
+    .password-visibility-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 8px;
+      color: #666;
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .password-visibility-option input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .form-warning {
+      display: none;
+      margin-top: 6px;
+      color: #d33;
+      font-size: 13px;
+      font-weight: bold;
+      line-height: 1.5;
+    }
+
+    .public-options {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .public-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .public-option input {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 9px;
+      font-size: 16px;
+      font-family: inherit;
+      background: white;
+    }
+
+    textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    .primary-button {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 13px;
+      background: #28784b;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .secondary-button {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 13px;
+      background: #eee;
+      color: #333;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    /* =========================
+       管理メニュー
+    ========================= */
+
+    .admin-menu {
+      padding: 16px;
+    }
+
+    .admin-menu-button {
+      width: 100%;
+      padding: 17px;
+      margin-bottom: 12px;
+      background: white;
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 2px 9px rgba(0,0,0,.07);
+      text-align: left;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .logout-button {
+      margin-top: 20px;
+      background: #f5f5f5;
+      color: #d32f2f;
+      border: 1px solid #ddd;
+    }
+
+    /* =========================
+       管理リスト
+    ========================= */
+
+    .admin-sort-hint {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #eef5f0;
+      color: #42614c;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .admin-list-card {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #fff;
+      border: 1px solid #e3e8e5;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      touch-action: pan-y;
+    }
+
+    .admin-drag-handle {
+      flex: 0 0 44px;
+      width: 44px;
+      min-height: 48px;
+      margin: 0;
+      padding: 0;
+      border: 1px solid #d8e0dc;
+      border-radius: 8px;
+      background: #f6f9f7;
+      color: #557263;
+      font-size: 22px;
+      line-height: 1;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .admin-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    .admin-list-card-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .admin-list-card.dragging {
+      opacity: 0.45;
+      outline: 2px dashed #4c8a67;
+    }
+
+    .admin-list-card.drag-over {
+      border-top: 3px solid #4c8a67;
+    }
+
+    .admin-list-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .admin-list-date {
+      color: #777;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .edit-button {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      border-radius: 8px;
+      background: #edf4ff;
+      color: #2864c7;
+    }
+
+    .delete-button {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      border-radius: 8px;
+      background: #fff0f0;
+      color: #d33;
+    }
+
+    /* =========================
+       コート当番（管理画面のみ）
+    ========================= */
+
+    .court-file-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid #e3e8e5;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .court-file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .court-file-name {
+      font-weight: bold;
+      font-size: 15px;
+      overflow-wrap: anywhere;
+    }
+
+    .court-file-meta {
+      margin-top: 4px;
+      color: #777;
+      font-size: 12px;
+    }
+
+    .court-file-actions {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .court-download-button,
+    .court-delete-button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+
+    .court-download-button {
+      background: #edf4ff;
+      color: #2864c7;
+    }
+
+    .court-delete-button {
+      background: #fff0f0;
+      color: #d33;
+    }
+
+    .court-upload-note {
+      margin: 8px 0 0;
+      color: #777;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* =========================
+       モーダル
+    ========================= */
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,.5);
+      overflow-y: auto;
+    }
+
+    .modal-content {
+      width: calc(100% - 30px);
+      max-width: 570px;
+      margin: 50px auto;
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    /* =========================
+       ローディング
+    ========================= */
+
+    .loading {
+      position: fixed;
+      z-index: 2000;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,.8);
+      color: white;
+      padding: 15px 22px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    /* =========================
+       トースト
+    ========================= */
+
+    .toast {
+      position: fixed;
+      z-index: 3000;
+      left: 50%;
+      bottom: 25px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.85);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      display: none;
+      white-space: normal;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    /* =========================
+       PC
+    ========================= */
+
+    @media (min-width: 601px) {
+
+      body {
+        background: #e9eeee;
+      }
+
+      .container {
+        box-shadow: 0 0 25px rgba(0,0,0,.08);
+      }
+
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- 全ページ共通の最上部バナー。メッセージが空なら非表示 -->
+  <div id="siteBanner" class="site-banner" role="status" aria-live="polite"></div>
+
+  <!-- =====================================
+       HOME
+  ====================================== -->
+
+  <div id="home" class="page active">
+
+    <div class="hero">
+
+      <img id="heroImage"
+           referrerpolicy="no-referrer"
+           src=""
+           alt="久喜ローンテニスクラブ">
+
+      <div class="hero-overlay">
+        <div id="heroTitle" class="hero-title">久喜ローンテニスクラブ</div>
+        <div id="heroSubtitle" class="hero-subtitle">みんなで楽しくテニスを！！</div>
+      </div>
+
+    </div>
+
+    <div class="home-content">
+
+      <div class="menu-grid">
+
+        <button class="menu-card" onclick="showPage('notices')">
+          <div class="menu-icon">📢</div>
+          <div class="menu-text">お知らせ</div>
+          <div class="menu-arrow">›</div>
+        </button>
+
+        <button class="menu-card" onclick="showPage('events')">
+          <div class="menu-icon">🎾</div>
+          <div class="menu-text">イベント情報</div>
+          <div class="menu-arrow">›</div>
+        </button>
+
+        <button class="menu-card" onclick="showPage('schedules')">
+          <div class="menu-icon">📅</div>
+          <div class="menu-text">スケジュール</div>
+          <div class="menu-arrow">›</div>
+        </button>
+
+        <button class="menu-card" onclick="showPage('contact')">
+          <div class="menu-icon">✉️</div>
+          <div class="menu-text">連絡先</div>
+          <div class="menu-arrow">›</div>
+        </button>
+
+        <!-- 管理者ログイン -->
+        <button class="menu-card" onclick="showAdminLogin()">
+          <div class="menu-icon">🔐</div>
+          <div class="menu-text">管理者ログイン</div>
+          <div class="menu-arrow">›</div>
+        </button>
+
+      </div>
+
+    </div>
+
+    <footer class="global-footer">
+      <div class="footer-inner">
+        <details class="footer-column">
+          <summary>便利ツール</summary>
+          <ul>
+            <li><a href="https://kuki-lawn-tennis.github.io/random/">乱数表<span aria-hidden="true">↗</span></a></li>
+            <li><a href="https://kuki-lawn-tennis.github.io/tennis-match/">テニスダブルス組み合わせ抽選<span aria-hidden="true">↗</span></a></li>
+          </ul>
+        </details>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- =====================================
+       お知らせ
+  ====================================== -->
+
+  <div id="notices" class="page">
+
+    <div class="page-header">
+      <button class="back-button" onclick="showPage('home')">↩️</button>
+      <div class="page-title">お知らせ</div>
+    </div>
+
+    <div id="noticeList" class="list"></div>
+
+    <div class="page-footer">
+      <button class="secondary-button" onclick="showPage('home')">↩️ ホームに戻る</button>
+    </div>
+
+  </div>
+
+  <!-- =====================================
+       イベント
+  ====================================== -->
+
+  <div id="events" class="page">
+
+    <div class="page-header">
+      <button class="back-button" onclick="showPage('home')">↩️</button>
+      <div class="page-title">イベント情報</div>
+    </div>
+
+    <div id="eventList" class="list"></div>
+
+    <div class="page-footer">
+      <button class="secondary-button" onclick="showPage('home')">↩️ ホームに戻る</button>
+    </div>
+
+  </div>
+
+  <!-- =====================================
+       スケジュール
+  ====================================== -->
+
+  <div id="schedules" class="page">
+
+    <div class="page-header">
+      <button class="back-button" onclick="showPage('home')">↩️</button>
+      <div class="page-title">スケジュール</div>
+    </div>
+
+    <div id="scheduleList" class="list"></div>
+
+    <div class="page-footer">
+      <button class="secondary-button" onclick="showPage('home')">↩️ ホームに戻る</button>
+    </div>
+
+  </div>
+
+  <!-- =====================================
+       連絡先
+  ====================================== -->
+
+  <div id="contact" class="page">
+
+    <div class="page-header">
+      <button class="back-button" onclick="showPage('home')">↩️</button>
+      <div class="page-title">連絡先</div>
+    </div>
+
+    <div id="contactContent" class="contact-card"></div>
+
+    <div class="page-footer">
+      <button class="secondary-button" onclick="showPage('home')">↩️ ホームに戻る</button>
+    </div>
+
+  </div>
+
+  <!-- =====================================
+       管理者ログイン
+  ====================================== -->
+
+  <div id="adminLogin" class="page">
+
+    <div class="page-header">
+      <button class="back-button" onclick="showPage('home')">↩️</button>
+      <div class="page-title">管理者ログイン</div>
+    </div>
+
+    <div class="admin-box">
+
+      <h2>管理者ログイン</h2>
+
+      <div class="form-group">
+
+        <label class="form-label">パスワード</label>
+
+        <input
+          id="adminPassword"
+          type="password"
+          placeholder="パスワードを入力"
+          autocomplete="current-password">
+        <label class="password-visibility-option" for="showAdminPassword">
+          <input
+            id="showAdminPassword"
+            type="checkbox"
+            onchange="toggleAdminPasswordVisibility()">
+          パスワードを表示
+        </label>
+
+      </div>
+
+      <button class="primary-button" onclick="login()">ログイン</button>
+
+    </div>
+
+    <div class="page-footer">
+      <button class="secondary-button" onclick="showPage('home')">↩️ ホームに戻る</button>
+    </div>
+
+  </div>
+
+  <!-- =====================================
+       管理メニュー
+  ====================================== -->
+
+  <div id="adminMenu" class="page">
+
+    <div class="page-header">
+      <div class="page-title">管理メニュー</div>
+    </div>
+
+    <div class="admin-menu">
+
+      <button class="admin-menu-button" onclick="openManager('notice')">📢 お知らせ管理</button>
+
+      <button class="admin-menu-button" onclick="openManager('event')">🎾 イベント管理</button>
+
+      <button class="admin-menu-button" onclick="openManager('schedule')">📅 スケジュール管理</button>
+
+      <button class="admin-menu-button" onclick="openCourtDuty()">🎾 コート当番</button>
+
+      <button class="admin-menu-button" onclick="openManager('settings')">⚙️ サイト設定</button>
+
+      <button class="admin-menu-button logout-button" onclick="logout()">🚪 ログアウト</button>
+
+    </div>
+
+  </div>
+
+  <!-- =====================================
+       管理ページ
+  ====================================== -->
+
+  <div id="manager" class="page">
+
+    <div class="page-header">
+      <button class="back-button" onclick="showPage('adminMenu')">↩️</button>
+      <div id="managerTitle" class="page-title">管理</div>
+    </div>
+
+    <div class="admin-box">
+      <button class="primary-button" onclick="openEditModal()">＋ 新規追加</button>
+    </div>
+
+    <div class="admin-sort-hint">
+      並べ替え：左の「☰」をパソコンではマウスで、スマホでは指で上下に動かしてください。数字入力による表示順変更もできます。
+    </div>
+
+    <div id="managerList" class="list"></div>
+
+    <div class="page-footer">
+      <button class="secondary-button" onclick="showPage('adminMenu')">↩️ 管理画面に戻る</button>
+    </div>
+
+  </div>
+
+  <!-- =====================================
+       コート当番（管理画面のみ）
+  ====================================== -->
+
+  <div id="courtDuty" class="page">
+
+    <div class="page-header">
+      <button class="back-button" onclick="showPage('adminMenu')">↩️</button>
+      <div class="page-title">コート当番</div>
+    </div>
+
+    <div class="admin-box">
+      <label class="form-label" for="courtUploadInput">ファイルアップロード</label>
+      <input id="courtUploadInput" type="file"
+             accept=".pdf,.xlsx,.xls,.docx,.doc,.csv,.png,.jpg,.jpeg">
+      <button class="primary-button" style="margin-top:12px;" onclick="uploadCourtDutyFile()">アップロード</button>
+      <p class="court-upload-note">PDF・Excel・Word・CSV・画像（1ファイル10MBまで）。同じ名前でも別ファイルとして保存されます。</p>
+    </div>
+
+    <div id="courtDutyList" class="list"></div>
+
+    <div class="page-footer">
+      <button class="secondary-button" onclick="showPage('adminMenu')">↩️ 管理画面に戻る</button>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- =====================================
+     編集モーダル
+====================================== -->
+
+<div id="editModal" class="modal">
+
+  <div class="modal-content">
+
+    <div id="modalTitle" class="modal-title">新規追加</div>
+
+    <input type="hidden" id="editId">
+
+    <div id="dateGroup" class="form-group">
+      <label class="form-label">日付</label>
+      <input id="editDate" type="date">
+    </div>
+
+    <div id="nameGroup" class="form-group">
+      <label id="nameLabel" class="form-label">タイトル</label>
+      <input id="editName" type="text">
+    </div>
+
+    <div id="displayOrderGroup" class="form-group">
+      <label class="form-label" for="editDisplayOrder">表示順（小さい数字ほど先に表示）</label>
+      <input id="editDisplayOrder" type="number" min="1" step="1" value="1" inputmode="numeric">
+    </div>
+
+    <div id="contentGroup" class="form-group">
+      <label class="form-label">内容</label>
+      <textarea id="editContent"></textarea>
+    </div>
+
+    <div id="publicGroup" class="form-group">
+
+      <label class="form-label">公開</label>
+
+      <div class="public-options">
+        <label class="public-option">
+          <input type="radio" name="editPublic" value="TRUE" checked>
+          <span>公開</span>
+        </label>
+        <label class="public-option">
+          <input type="radio" name="editPublic" value="FALSE">
+          <span>非公開</span>
+        </label>
+      </div>
+
+    </div>
+
+    <button class="primary-button" onclick="saveEdit()">保存</button>
+
+    <button class="secondary-button" onclick="closeModal()">キャンセル</button>
+
+  </div>
+
+</div>
+
+<!-- =====================================
+     設定モーダル
+====================================== -->
+
+<div id="settingsModal" class="modal">
+
+  <div class="modal-content">
+
+    <div class="modal-title">サイト設定</div>
+
+    <div class="form-group">
+      <label class="form-label">クラブ名</label>
+      <input id="settingClubName" type="text">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">キャッチコピー</label>
+      <input id="settingSubtitle" type="text">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">連絡先</label>
+      <textarea id="settingContact"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">ページ最上部のバナーメッセージ</label>
+      <textarea id="settingBannerMessage" maxlength="100" placeholder="例：10月12日の練習は雨天のため中止です。"></textarea>
+      <small>空欄の場合、または表示期限切れの場合は「新しいお知らせがありません。」と表示します（100文字以内）。</small>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="settingBannerEndDate">バナーメッセージ表示期限日</label>
+      <input id="settingBannerEndDate" type="date" onchange="updateBannerEndDateWarning_()">
+      <small>期限日翌日より、設定したバナーメッセージは表示されなくなります。空欄なら期限なしで表示します。</small>
+      <div id="bannerEndDateWarning" class="form-warning">
+        設定した日付は本日以前のため、設定したバナーメッセージは表示されません。
+      </div>
+    </div>
+
+    <button class="primary-button" onclick="saveSettings()">保存</button>
+
+    <button class="secondary-button" onclick="closeSettingsModal()">キャンセル</button>
+
+  </div>
+
+</div>
+
+<!-- =====================================
+     Loading
+====================================== -->
+
+<div id="loading" class="loading">処理中...</div>
+
+<!-- =====================================
+     Toast
+====================================== -->
+
+<div id="toast" class="toast"></div>
+
+<!-- 全ページ共通フッター -->
+<footer class="site-footer">LAWN TENNIS CLUB</footer>
+
+<script>
+
+  // Deploy the GAS web app and paste its /exec URL here.
+  const GAS_WEB_APP_URL = '';
+  const GAS_API_TIMEOUT_MS = 300000;
+  const GAS_API_NONCE = Date.now() + '-' + Math.random().toString(36).slice(2);
+  const gasApiFrame = document.createElement('iframe');
+  const gasApiPending = new Map();
+  const gasApiQueue = [];
+  let gasApiReady = false;
+  let gasApiConnectionError = null;
+  let gasApiRequestId = 0;
+  let gasApiHandshakeTimer = null;
+
+  gasApiFrame.title = 'Google Apps Script API';
+  gasApiFrame.setAttribute('aria-hidden', 'true');
+  gasApiFrame.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden';
+
+  function rejectPendingGasApiCalls_(error) {
+    gasApiConnectionError = error;
+    gasApiReady = false;
+    if (gasApiHandshakeTimer) {
+      clearTimeout(gasApiHandshakeTimer);
+      gasApiHandshakeTimer = null;
+    }
+
+    while (gasApiQueue.length) {
+      const request = gasApiQueue.shift();
+      clearTimeout(request.timer);
+      request.reject(error);
+    }
+
+    gasApiPending.forEach(function(request) {
+      clearTimeout(request.timer);
+      request.reject(error);
+    });
+    gasApiPending.clear();
+  }
+
+  function sendGasApiRequest_(request) {
+    try {
+      gasApiFrame.contentWindow.postMessage({
+        type: 'gas-api-request',
+        nonce: GAS_API_NONCE,
+        id: request.id,
+        method: request.method,
+        args: request.args
+      }, '*');
+    } catch (error) {
+      gasApiPending.delete(request.id);
+      clearTimeout(request.timer);
+      request.reject(error);
+    }
+  }
+
+  function callGasApi_(method, args) {
+    return new Promise(function(resolve, reject) {
+      if (gasApiConnectionError) {
+        reject(gasApiConnectionError);
+        return;
+      }
+
+      const request = {
+        id: String(++gasApiRequestId),
+        method: method,
+        args: args,
+        resolve: resolve,
+        reject: reject,
+        timer: null
+      };
+
+      request.timer = setTimeout(function() {
+        gasApiPending.delete(request.id);
+        const queuedIndex = gasApiQueue.indexOf(request);
+        if (queuedIndex !== -1) gasApiQueue.splice(queuedIndex, 1);
+        reject(new Error('GAS APIの応答がタイムアウトしました。'));
+      }, GAS_API_TIMEOUT_MS);
+
+      if (gasApiReady) {
+        gasApiPending.set(request.id, request);
+        sendGasApiRequest_(request);
+      } else {
+        gasApiQueue.push(request);
+      }
+    });
+  }
+
+  window.addEventListener('message', function(event) {
+    if (event.source !== gasApiFrame.contentWindow) return;
+
+    const message = event.data;
+    if (!message || message.nonce !== GAS_API_NONCE) return;
+
+    if (message.type === 'gas-api-error') {
+      rejectPendingGasApiCalls_(new Error(message.error || 'GAS APIとの接続に失敗しました。'));
+      return;
+    }
+
+    if (message.type === 'gas-api-ready') {
+      gasApiReady = true;
+      gasApiConnectionError = null;
+      if (gasApiHandshakeTimer) {
+        clearTimeout(gasApiHandshakeTimer);
+        gasApiHandshakeTimer = null;
+      }
+
+      while (gasApiQueue.length) {
+        const request = gasApiQueue.shift();
+        gasApiPending.set(request.id, request);
+        sendGasApiRequest_(request);
+      }
+      return;
+    }
+
+    if (message.type !== 'gas-api-response') return;
+
+    const request = gasApiPending.get(message.id);
+    if (!request) return;
+    gasApiPending.delete(message.id);
+    clearTimeout(request.timer);
+
+    if (message.success) {
+      request.resolve(message.result);
+    } else {
+      request.reject(new Error(message.error || 'GAS APIの処理に失敗しました。'));
+    }
+  });
+
+  if (!GAS_WEB_APP_URL) {
+    gasApiConnectionError = new Error('index.htmlのGAS_WEB_APP_URLにGASウェブアプリのURLを設定してください。');
+  } else if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec(?:\?.*)?$/.test(GAS_WEB_APP_URL)) {
+    gasApiConnectionError = new Error('GAS_WEB_APP_URLにはデプロイ済みウェブアプリの /exec URLを設定してください。');
+  } else {
+    gasApiFrame.addEventListener('load', function() {
+      gasApiReady = false;
+      gasApiConnectionError = null;
+      gasApiFrame.contentWindow.postMessage({
+        type: 'gas-api-init',
+        nonce: GAS_API_NONCE
+      }, '*');
+
+      if (gasApiHandshakeTimer) clearTimeout(gasApiHandshakeTimer);
+      gasApiHandshakeTimer = setTimeout(function() {
+        rejectPendingGasApiCalls_(new Error(
+          'GAS APIとの接続を確認できません。GITHUB_PAGES_ORIGINSの設定とGASのデプロイを確認してください。'
+        ));
+      }, 15000);
+    });
+    gasApiFrame.addEventListener('error', function() {
+      rejectPendingGasApiCalls_(new Error('GAS APIを読み込めませんでした。デプロイURLを確認してください。'));
+    });
+    gasApiFrame.src = GAS_WEB_APP_URL;
+  }
+
+  document.body.appendChild(gasApiFrame);
+
+  // 管理者ログイン後に発行される、期限付きセッショントークン（パスワードではありません）
+  let adminToken = '';
+
+  let adminData = {};
+
+  let currentManager = 'notice';
+
+  // 管理画面の種類ごとの設定
+  const TYPE_CONFIG = {
+    notice:   { title: 'お知らせ管理',     dataKey: 'notices',   nameLabel: 'タイトル',   titleField: 'タイトル',   hasDate: true  },
+    event:    { title: 'イベント管理',     dataKey: 'events',    nameLabel: 'イベント名', titleField: 'イベント名', hasDate: true  },
+    schedule: { title: 'スケジュール管理', dataKey: 'schedules', nameLabel: 'タイトル',   titleField: 'タイトル',   hasDate: false }
+  };
+
+  // 現在の管理画面で扱っているデータ配列を返す
+  function getCurrentAdminData() {
+    return adminData[TYPE_CONFIG[currentManager].dataKey] || [];
+  }
+
+  /* =====================================
+     初期処理
+  ====================================== */
+
+  window.onload = function() {
+
+    // 初回表示も「トップページを表示した1回」として詳細ログに記録
+    showPage('home');
+
+    // 公開データを取得
+    loadPublicData();
+
+    // 日別集計は新しいセッションでトップを初めて表示した時だけ
+    recordTopAccessSummary_();
+
+  };
+
+  /* =====================================
+     アクセスログ
+  ====================================== */
+
+  // 詳細ログは表示のたびに記録する（リロード・同一セッション内の再表示も含む）
+  function recordPageAccess_(pageName) {
+
+    callGasApi_('savePageAccessLog', [pageName, navigator.userAgent])
+      .catch(function(error) {
+        console.log('ページアクセスログ保存エラー:', error);
+      });
+  }
+
+  // 「アクセス集計」は新しいセッションのトップ初回表示だけ
+  // 同一セッションでトップへ戻る・更新する場合は加算しない
+  function recordTopAccessSummary_() {
+
+    const storageKey = 'tennisBoardTopAccessSummaryLogged';
+
+    if (sessionStorage.getItem(storageKey) === '1') {
+      return;
+    }
+
+    // 同一セッションからの連続実行を防止
+    sessionStorage.setItem(storageKey, '1');
+
+    callGasApi_('saveTopAccessSummary', [])
+      .catch(function(error) {
+        console.log('トップページ日別集計エラー:', error);
+      });
+  }
+
+  /* =====================================
+     公開データ取得
+  ====================================== */
+
+  function loadPublicData() {
+
+    showLoading();
+
+    callGasApi_('getPublicData', [])
+      .then(function(data) {
+
+        hideLoading();
+
+        applySettings(data.settings);
+        applyBannerMessage_(data.bannerMessage);
+
+        renderPublicList_(data.notices, 'noticeList', 'タイトル', 'お知らせはありません。', true);
+        renderPublicList_(data.events, 'eventList', 'イベント名', 'イベント情報はありません。', true);
+        renderPublicList_(data.schedules, 'scheduleList', 'タイトル', 'スケジュールはありません。', false);
+
+      })
+      .catch(function(error) {
+
+        hideLoading();
+
+        showToast('データ取得エラー: ' + error.message);
+
+      });
+
+  }
+
+  /* =====================================
+     バナー表示（HTMLとして解釈させず文字列として表示）
+  ====================================== */
+
+  function applyBannerMessage_(message) {
+    const banner = document.getElementById('siteBanner');
+    const text = String(message || '').trim();
+    banner.textContent = text;
+    banner.style.display = text ? 'block' : 'none';
+  }
+
+  /* =====================================
+     設定反映
+  ====================================== */
+
+  function applySettings(settings) {
+
+    if (!settings) {
+      return;
+    }
+
+    document.getElementById('heroTitle').textContent =
+      settings['クラブ名'] || '久喜ローンテニスクラブ';
+
+    document.getElementById('heroSubtitle').textContent =
+      settings['キャッチコピー'] || 'みんなで楽しくテニスを！！';
+
+    /* トップ画像 */
+
+    const heroImage = document.getElementById('heroImage');
+
+    heroImage.removeAttribute('src');
+    heroImage.style.display = 'none';
+    heroImage.referrerPolicy = 'no-referrer';
+
+    if (settings['トップ画像ID']) {
+
+      // GASから画像本体を取得（Base64）
+      loadHeroImageFromServer_(heroImage, settings['トップ画像URL']);
+    }
+
+    /* 連絡先 */
+
+    const contactContent = document.getElementById('contactContent');
+    const contact = settings['連絡先'] || '';
+    contactContent.textContent = contact || '連絡先は登録されていません。';
+    contactContent.className = contact ? 'contact-card' : 'empty';
+
+  }
+
+  /* =====================================
+     トップ画像：GAS経由（Base64）で取得
+  ====================================== */
+
+  function loadHeroImageFromServer_(heroImage, fallbackUrl) {
+
+    callGasApi_('getTopImageDataUrl', [])
+      .then(function(result) {
+
+        if (result && result.success && result.dataUrl) {
+
+          heroImage.onload = function() {
+            heroImage.style.display = 'block';
+          };
+
+          heroImage.onerror = function() {
+            loadHeroImageFallback_(heroImage, fallbackUrl);
+          };
+
+          heroImage.src = result.dataUrl;
+
+        } else {
+
+          let errorWasReported = false;
+          if (result && result.message) {
+            console.error('トップ画像エラー:', result.message, result.detail || '');
+            showToast(result.message);
+            errorWasReported = true;
+          }
+
+          loadHeroImageFallback_(heroImage, fallbackUrl, errorWasReported);
+        }
+      })
+      .catch(function() {
+
+        console.error('トップ画像の取得に失敗しました（通信エラー・サイズ超過の可能性）');
+
+        loadHeroImageFallback_(heroImage, fallbackUrl);
+      });
+  }
+
+  /* =====================================
+     トップ画像フォールバック
+  ====================================== */
+
+  function loadHeroImageFallback_(imageElement, imageUrl, suppressErrorToast) {
+
+    if (!imageUrl) {
+      imageElement.style.display = 'none';
+      return;
+    }
+
+    imageElement.onload = function() {
+      imageElement.style.display = 'block';
+    };
+
+    imageElement.onerror = function() {
+      imageElement.style.display = 'none';
+      if (!suppressErrorToast) {
+        showToast('トップ画像を表示できませんでした。');
+      }
+    };
+
+    imageElement.referrerPolicy = 'no-referrer';
+    imageElement.src = imageUrl;
+
+  }
+
+  /* =====================================
+     ページ切り替え
+  ====================================== */
+
+  function showPage(pageId) {
+
+    document.querySelectorAll('.page').forEach(function(page) {
+      page.classList.remove('active');
+    });
+
+    const page = document.getElementById(pageId);
+
+    if (page) {
+      page.classList.add('active');
+    }
+
+    window.scrollTo(0, 0);
+
+    // コート当番画面を離れたら、選択中のアップロードファイルをクリア
+    if (pageId !== 'courtDuty') {
+      document.getElementById('courtUploadInput').value = '';
+    }
+
+    // 公開ページと管理者ログイン画面を詳細アクセスログへ記録
+    // 管理メニュー・管理ページは対象外
+    const pageNames = {
+      home: 'トップ',
+      notices: 'お知らせ',
+      events: 'イベント情報',
+      schedules: 'スケジュール',
+      contact: '連絡先',
+      adminLogin: '管理者ログイン'
+    };
+
+    if (pageNames[pageId]) {
+      recordPageAccess_(pageNames[pageId]);
+    }
+
+  }
+
+  /* =====================================
+     公開リスト表示
+  ====================================== */
+
+  function renderPublicList_(data, containerId, titleField, emptyMessage, showDate) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="empty">' + emptyMessage + '</div>';
+      return;
+    }
+
+    data.forEach(function(item) {
+      const card = document.createElement('div');
+      card.className = 'list-card';
+      card.innerHTML =
+        (showDate ? '<div class="list-date">' + escapeHtml(item.日付) + '</div>' : '') +
+        '<div class="list-title">' + escapeHtml(item[titleField]) + '</div>' +
+        '<div class="list-content">' + escapeHtml(item.内容) + '</div>';
+      container.appendChild(card);
+    });
+  }
+
+  /* =====================================
+     管理者ログイン
+  ====================================== */
+
+  function showAdminLogin() {
+
+    showPage('adminLogin');
+
+    document.getElementById('adminPassword').value = '';
+
+    // ログイン画面を開くたび、パスワード表示チェックを解除する
+    resetPasswordVisibility_();
+
+  }
+
+  function resetPasswordVisibility_() {
+    const showPasswordCheckbox = document.getElementById('showAdminPassword');
+    if (showPasswordCheckbox) showPasswordCheckbox.checked = false;
+    toggleAdminPasswordVisibility();
+  }
+
+  // チェックが入っている間だけパスワードを表示
+  function toggleAdminPasswordVisibility() {
+    const input = document.getElementById('adminPassword');
+    const checkbox = document.getElementById('showAdminPassword');
+    if (!input || !checkbox) return;
+    input.type = checkbox.checked ? 'text' : 'password';
+  }
+
+  function login() {
+
+    const password = document.getElementById('adminPassword').value.trim();
+
+    if (!password) {
+      showToast('パスワードを入力してください。');
+      return;
+    }
+
+    showLoading();
+
+    callGasApi_('checkAdminPassword', [password])
+      .then(function(result) {
+
+        hideLoading();
+
+        if (typeof result === 'string' && result.length >= 32) {
+
+          adminToken = result;
+          document.getElementById('adminPassword').value = '';
+          resetPasswordVisibility_();
+          loadAdminData();
+
+        } else {
+
+          showToast('パスワードが違います。');
+
+        }
+
+      })
+      .catch(function(error) {
+
+        hideLoading();
+
+        showToast(error.message);
+
+      });
+
+  }
+
+  /* =====================================
+     管理データ取得
+  ====================================== */
+
+  function loadAdminData(callback) {
+
+    showLoading();
+
+    callGasApi_('getAdminData', [adminToken])
+      .then(function(data) {
+
+        hideLoading();
+
+        adminData = data;
+
+        if (typeof callback === 'function') {
+          callback();
+        } else {
+          showPage('adminMenu');
+        }
+
+      })
+      .catch(function(error) {
+
+        hideLoading();
+
+        showToast(error.message);
+
+      });
+
+  }
+
+  /* =====================================
+     管理画面を開く
+  ====================================== */
+
+  function openManager(type) {
+
+    currentManager = type;
+
+    if (type === 'settings') {
+      openSettings();
+      return;
+    }
+
+    document.getElementById('managerTitle').textContent = TYPE_CONFIG[type].title;
+
+    renderAdminList();
+
+    showPage('manager');
+
+  }
+
+  /* =====================================
+     管理リスト
+     （並び順はサーバー側で表示順に並べ済み）
+  ====================================== */
+
+  function renderAdminList() {
+    const container = document.getElementById('managerList');
+    container.innerHTML = '';
+
+    const cfg = TYPE_CONFIG[currentManager];
+    const data = getCurrentAdminData();
+
+    if (data.length === 0) {
+      container.innerHTML = '<div class="empty">登録データがありません。</div>';
+      return;
+    }
+
+    data.forEach(function(item) {
+      const card = document.createElement('div');
+      card.className = 'admin-list-card';
+      card.dataset.id = String(item.ID);
+
+      const handle = document.createElement('button');
+      handle.type = 'button';
+      handle.className = 'admin-drag-handle';
+      handle.textContent = '☰';
+      handle.title = 'ドラッグして表示順を変更';
+      handle.setAttribute('aria-label', 'ドラッグして表示順を変更');
+      handle.addEventListener('pointerdown', startAdminCardDrag);
+      handle.addEventListener('touchstart', startAdminCardTouchDrag, { passive: false });
+
+      const isHidden = item.公開 !== true && String(item.公開).toUpperCase() !== 'TRUE';
+      const title = item[cfg.titleField] || '';
+
+      const content = document.createElement('div');
+      content.className = 'admin-list-card-content';
+      content.innerHTML =
+        '<div class="admin-list-date">表示順：' +
+          escapeHtml(item.表示順 == null || item.表示順 === '' ? '未設定' : item.表示順) +
+          (isHidden ? ' (非公開設定中)' : ' (公開中)') + '</div>' +
+        (cfg.hasDate ? '<div class="admin-list-date">' + escapeHtml(item.日付) + '</div>' : '') +
+        (title ? '<div class="admin-list-title">' + escapeHtml(title) + '</div>' : '') +
+        '<div class="admin-actions"></div>';
+
+      const editButton = document.createElement('button');
+      editButton.className = 'edit-button';
+      editButton.textContent = '編集';
+      editButton.addEventListener('click', function() { openEditModal(item.ID); });
+
+      const deleteButton = document.createElement('button');
+      deleteButton.className = 'delete-button';
+      deleteButton.textContent = '削除';
+      deleteButton.addEventListener('click', function() { deleteItem(item.ID); });
+
+      content.querySelector('.admin-actions').append(editButton, deleteButton);
+
+      card.appendChild(handle);
+      card.appendChild(content);
+      container.appendChild(card);
+    });
+  }
+
+  /* =====================================
+     ドラッグによる並べ替え
+     マウス・タッチ共通で管理カードを動かす
+  ====================================== */
+
+  let adminDragState = null;
+
+  // 画面端に指を置いたままドラッグしたとき、ページを自動でスクロールする。
+  // リストの先頭・末尾を画面外から呼び込めるようにする。
+  function autoScrollAdminListWhileDragging() {
+    const state = adminDragState;
+    if (!state) return;
+
+    const edgeSize = 72;
+    const maxSpeed = 14;
+    const viewportHeight = window.innerHeight;
+    let scrollDelta = 0;
+
+    if (state.clientY < edgeSize) {
+      scrollDelta = -Math.ceil(maxSpeed * (edgeSize - state.clientY) / edgeSize);
+    } else if (state.clientY > viewportHeight - edgeSize) {
+      scrollDelta = Math.ceil(maxSpeed * (state.clientY - (viewportHeight - edgeSize)) / edgeSize);
+    }
+
+    if (scrollDelta) {
+      window.scrollBy(0, scrollDelta);
+      moveAdminCardToPointer_(state, state.clientX, state.clientY);
+    }
+
+    state.scrollFrame = requestAnimationFrame(autoScrollAdminListWhileDragging);
+  }
+
+  function moveAdminCardToPointer_(state, clientX, clientY) {
+    const target = document.elementFromPoint(clientX, clientY);
+    const targetCard = target && target.closest ? target.closest('.admin-list-card') : null;
+    if (!targetCard || targetCard === state.card || targetCard.parentElement !== state.container) return;
+    const rect = targetCard.getBoundingClientRect();
+    const insertAfter = clientY > rect.top + rect.height / 2;
+    state.container.insertBefore(state.card, insertAfter ? targetCard.nextSibling : targetCard);
+    state.moved = true;
+    state.container.querySelectorAll('.admin-list-card').forEach(function(node) { node.classList.remove('drag-over'); });
+    targetCard.classList.add('drag-over');
+  }
+
+  function startAdminCardDrag(event) {
+    // タッチ端末はTouch Eventsで追跡する。Pointer Eventsとの二重起動を防ぐ。
+    if (event.pointerType === 'touch') return;
+    if (event.button !== undefined && event.button !== 0) return;
+    const card = event.currentTarget.closest('.admin-list-card');
+    const container = document.getElementById('managerList');
+    if (!card || !container) return;
+    event.preventDefault();
+    adminDragState = { card: card, container: container, pointerId: event.pointerId, moved: false, clientX: event.clientX, clientY: event.clientY, scrollFrame: null };
+    card.classList.add('dragging');
+    // Pointer Captureを使うと、一部のiPhoneブラウザーや埋め込み表示で
+    // ドラッグ中の座標取得が不安定になるため、document側でイベントを追跡する。
+    document.addEventListener('pointermove', moveAdminCardDrag, { passive: false });
+    document.addEventListener('pointerup', finishAdminCardDrag);
+    document.addEventListener('pointercancel', cancelAdminCardDrag);
+    adminDragState.scrollFrame = requestAnimationFrame(autoScrollAdminListWhileDragging);
+  }
+
+  function startAdminCardTouchDrag(event) {
+    const touch = event.changedTouches && event.changedTouches[0];
+    if (!touch) return;
+    const card = event.currentTarget.closest('.admin-list-card');
+    const container = document.getElementById('managerList');
+    if (!card || !container) return;
+
+    event.preventDefault();
+    adminDragState = {
+      card: card,
+      container: container,
+      touchId: touch.identifier,
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      moved: false,
+      scrollFrame: null
+    };
+    card.classList.add('dragging');
+    document.addEventListener('touchmove', moveAdminCardTouchDrag, { passive: false });
+    document.addEventListener('touchend', finishAdminCardTouchDrag);
+    document.addEventListener('touchcancel', cancelAdminCardTouchDrag);
+    adminDragState.scrollFrame = requestAnimationFrame(autoScrollAdminListWhileDragging);
+  }
+
+  function findAdminDragTouch_(event) {
+    const touches = event.changedTouches || event.touches;
+    if (!touches || !adminDragState) return null;
+    for (let i = 0; i < touches.length; i++) {
+      if (touches[i].identifier === adminDragState.touchId) return touches[i];
+    }
+    return null;
+  }
+
+  function moveAdminCardTouchDrag(event) {
+    if (!adminDragState) return;
+    const touch = findAdminDragTouch_(event);
+    if (!touch) return;
+    event.preventDefault();
+    adminDragState.clientX = touch.clientX;
+    adminDragState.clientY = touch.clientY;
+    moveAdminCardToPointer_(adminDragState, touch.clientX, touch.clientY);
+  }
+
+  function finishAdminCardTouchDrag(event) {
+    if (!adminDragState || !findAdminDragTouch_(event)) return;
+    finishAdminCardDrag({});
+  }
+
+  function cancelAdminCardTouchDrag(event) {
+    if (!adminDragState || !findAdminDragTouch_(event)) return;
+    cancelAdminCardDrag();
+  }
+
+  function moveAdminCardDrag(event) {
+    if (!adminDragState) return;
+    if (adminDragState.pointerId !== undefined && event.pointerId !== undefined && event.pointerId !== adminDragState.pointerId) return;
+    event.preventDefault();
+    adminDragState.clientX = event.clientX;
+    adminDragState.clientY = event.clientY;
+    moveAdminCardToPointer_(adminDragState, event.clientX, event.clientY);
+  }
+
+  // ドラッグ終了時の後始末（表示・イベント・状態をまとめて解除）。終了した状態を返す。
+  function cleanupAdminDrag_() {
+    const state = adminDragState;
+    if (!state) return null;
+    if (state.scrollFrame) cancelAnimationFrame(state.scrollFrame);
+    state.card.classList.remove('dragging');
+    state.container.querySelectorAll('.admin-list-card').forEach(function(node) { node.classList.remove('drag-over'); });
+    document.removeEventListener('pointermove', moveAdminCardDrag);
+    document.removeEventListener('pointerup', finishAdminCardDrag);
+    document.removeEventListener('pointercancel', cancelAdminCardDrag);
+    document.removeEventListener('touchmove', moveAdminCardTouchDrag);
+    document.removeEventListener('touchend', finishAdminCardTouchDrag);
+    document.removeEventListener('touchcancel', cancelAdminCardTouchDrag);
+    adminDragState = null;
+    return state;
+  }
+
+  function finishAdminCardDrag(event) {
+    if (!adminDragState) return;
+    if (adminDragState.pointerId !== undefined && event.pointerId !== undefined && event.pointerId !== adminDragState.pointerId) return;
+    const state = cleanupAdminDrag_();
+    if (state.moved) saveAdminCardOrder();
+  }
+
+  function cancelAdminCardDrag() {
+    if (cleanupAdminDrag_()) renderAdminList();
+  }
+
+  function saveAdminCardOrder() {
+    const container = document.getElementById('managerList');
+    const orderedIds = Array.from(container.querySelectorAll('.admin-list-card')).map(function(card) { return card.dataset.id; });
+    if (!orderedIds.length) return;
+    showLoading();
+    callGasApi_('saveDisplayOrder', [adminToken, currentManager, orderedIds, navigator.userAgent])
+      .then(function() {
+        hideLoading();
+        // 保存した並び順を手元のデータにも反映（番号を更新し、配列も同じ順に並べ替える）
+        const orderById = {};
+        orderedIds.forEach(function(id, index) { orderById[String(id)] = index + 1; });
+        const data = getCurrentAdminData();
+        data.forEach(function(item) {
+          if (Object.prototype.hasOwnProperty.call(orderById, String(item.ID))) item.表示順 = orderById[String(item.ID)];
+        });
+        data.sort(function(a, b) {
+          return (orderById[String(a.ID)] || Infinity) - (orderById[String(b.ID)] || Infinity);
+        });
+        renderAdminList();
+        showToast('表示順を保存しました。');
+        loadPublicData();
+      })
+      .catch(function(error) {
+        hideLoading();
+        showToast(error && error.message ? error.message : '表示順の保存に失敗しました。');
+        loadAdminData(renderAdminList);
+      });
+  }
+
+  /* =====================================
+     コート当番（管理画面のみ）
+  ====================================== */
+
+  const COURT_MAX_BYTES = 10 * 1024 * 1024;
+
+  function openCourtDuty() {
+    showPage('courtDuty');
+    loadCourtDutyFiles();
+  }
+
+  function loadCourtDutyFiles() {
+
+    const container = document.getElementById('courtDutyList');
+
+    showLoading();
+
+    callGasApi_('listCourtDutyFiles', [adminToken])
+      .then(function(files) {
+
+        hideLoading();
+        container.innerHTML = '';
+
+        if (!files || files.length === 0) {
+          container.innerHTML = '<div class="empty">ファイルがありません。</div>';
+          return;
+        }
+
+        files.forEach(function(file) {
+          const card = document.createElement('div');
+          card.className = 'court-file-card';
+          card.innerHTML =
+            '<div class="court-file-info">' +
+              '<div class="court-file-name">' + escapeHtml(file.name) + '</div>' +
+              '<div class="court-file-meta">' + escapeHtml(file.updated) + ' ／ ' + escapeHtml(formatFileSize_(file.size)) + '</div>' +
+            '</div>';
+
+          const downloadButton = document.createElement('button');
+          downloadButton.className = 'court-download-button';
+          downloadButton.textContent = '⬇ ダウンロード';
+          downloadButton.addEventListener('click', function() { downloadCourtDutyFile(file.id); });
+
+          const deleteButton = document.createElement('button');
+          deleteButton.className = 'court-delete-button';
+          deleteButton.textContent = '削除';
+          deleteButton.addEventListener('click', function() { deleteCourtDutyFile(file.id, file.name); });
+
+          const actions = document.createElement('div');
+          actions.className = 'court-file-actions';
+          actions.append(downloadButton, deleteButton);
+
+          card.appendChild(actions);
+          container.appendChild(card);
+        });
+      })
+      .catch(function(error) {
+        hideLoading();
+        container.innerHTML = '';
+        showToast(error.message);
+      });
+  }
+
+  function downloadCourtDutyFile(fileId) {
+
+    showLoading();
+
+    callGasApi_('getCourtDutyFileData', [adminToken, fileId])
+      .then(function(result) {
+
+        hideLoading();
+
+        // Base64 → Blob → ダウンロード
+        const binary = atob(result.base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+        const url = URL.createObjectURL(new Blob([bytes], { type: result.mimeType }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = result.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+      })
+      .catch(function(error) {
+        hideLoading();
+        showToast(error.message);
+      });
+  }
+
+  function uploadCourtDutyFile() {
+
+    const input = document.getElementById('courtUploadInput');
+    const file = input.files && input.files[0];
+
+    if (!file) {
+      showToast('アップロードするファイルを選んでください。');
+      return;
+    }
+
+    if (file.size > COURT_MAX_BYTES) {
+      showToast('ファイルが大きすぎます（10MBまで）。');
+      return;
+    }
+
+    showLoading();
+
+    const reader = new FileReader();
+
+    reader.onerror = function() {
+      hideLoading();
+      showToast('ファイルを読み込めませんでした。');
+    };
+
+    reader.onload = function() {
+
+      // "data:...;base64,xxxx" の先頭部分を除く
+      const base64 = String(reader.result).split(',')[1] || '';
+
+      callGasApi_('uploadCourtDutyFile', [adminToken, file.name, file.type, base64, navigator.userAgent])
+        .then(function() {
+          hideLoading();
+          input.value = '';
+          showToast('ファイルはアップロードされました。');
+          loadCourtDutyFiles();
+        })
+        .catch(function(error) {
+          hideLoading();
+          showToast(error.message);
+        });
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function deleteCourtDutyFile(fileId, fileName) {
+
+    if (!confirm('「' + fileName + '」を削除しますか？')) {
+      return;
+    }
+
+    showLoading();
+
+    callGasApi_('deleteCourtDutyFile', [adminToken, fileId, navigator.userAgent])
+      .then(function() {
+        hideLoading();
+        showToast('削除しました。');
+        loadCourtDutyFiles();
+      })
+      .catch(function(error) {
+        hideLoading();
+        showToast(error.message);
+      });
+  }
+
+  function formatFileSize_(bytes) {
+    const n = Number(bytes) || 0;
+    return n >= 1024 * 1024
+      ? (n / 1024 / 1024).toFixed(1) + 'MB'
+      : Math.max(1, Math.round(n / 1024)) + 'KB';
+  }
+
+  /* =====================================
+     編集モーダル
+  ====================================== */
+
+  function openEditModal(id) {
+
+    const cfg = TYPE_CONFIG[currentManager];
+    const data = getCurrentAdminData();
+
+    const item = id
+      ? data.find(function(x) { return String(x.ID) === String(id); })
+      : null;
+
+    document.getElementById('editId').value = item ? item.ID : '';
+    document.getElementById('editDate').value = item ? (item.日付 || '') : '';
+    document.getElementById('editContent').value = item ? (item.内容 || '') : '';
+    document.getElementById('editName').value = item ? (item[cfg.titleField] || '') : '';
+    document.getElementById('nameLabel').textContent = cfg.nameLabel;
+
+    // 表示順の初期値：登録済みならその値、新規・未設定なら末尾の番号
+    const maxDisplayOrder = data.reduce(function(max, entry) {
+      const n = Number(entry.表示順);
+      return entry.表示順 !== '' && entry.表示順 != null && Number.isFinite(n)
+        ? Math.max(max, n) : max;
+    }, 0);
+    document.getElementById('editDisplayOrder').value =
+      item && item.表示順 !== '' && item.表示順 != null
+        ? item.表示順
+        : maxDisplayOrder + 1;
+
+    const publicValue = item && item.公開 === false ? 'FALSE' : 'TRUE';
+    document.querySelectorAll('input[name="editPublic"]').forEach(function(input) {
+      input.checked = input.value === publicValue;
+    });
+
+    // スケジュールは日付を使わない
+    document.getElementById('dateGroup').style.display = cfg.hasDate ? 'block' : 'none';
+
+    document.getElementById('modalTitle').textContent = item ? '編集' : '新規追加';
+
+    document.getElementById('editModal').style.display = 'block';
+
+  }
+
+  function closeModal() {
+    document.getElementById('editModal').style.display = 'none';
+  }
+
+  /* =====================================
+     保存
+  ====================================== */
+
+  function saveEdit() {
+
+    const cfg = TYPE_CONFIG[currentManager];
+
+    const date = document.getElementById('editDate').value;
+
+    const selectedPublicOption = document.querySelector('input[name="editPublic"]:checked');
+
+    const displayOrderValue = document.getElementById('editDisplayOrder').value;
+    const displayOrder = Number(displayOrderValue);
+    if (displayOrderValue === '' || !Number.isInteger(displayOrder) || displayOrder < 1) {
+      showToast('表示順は1以上の整数で入力してください。');
+      return;
+    }
+
+    if (cfg.hasDate && !date) {
+      showToast('日付を入力してください。');
+      return;
+    }
+
+    const data = {
+      ID: document.getElementById('editId').value,
+      日付: cfg.hasDate ? date : '',
+      内容: document.getElementById('editContent').value,
+      公開: selectedPublicOption ? selectedPublicOption.value : 'TRUE',
+      表示順: displayOrder
+    };
+    data[cfg.titleField] = document.getElementById('editName').value;
+
+    showLoading();
+
+    callGasApi_('saveItem', [adminToken, currentManager, data, navigator.userAgent])
+      .then(function() {
+
+        hideLoading();
+        closeModal();
+        loadAdminData(renderAdminList);
+        loadPublicData();
+        showToast('保存しました。');
+
+      })
+      .catch(function(error) {
+
+        hideLoading();
+        showToast(error.message);
+
+      });
+
+  }
+
+  /* =====================================
+     削除
+  ====================================== */
+
+  function deleteItem(id) {
+
+    if (!confirm('このデータを削除しますか？')) {
+      return;
+    }
+
+    showLoading();
+
+    callGasApi_('deleteItem', [adminToken, currentManager, id, navigator.userAgent])
+      .then(function() {
+
+        hideLoading();
+        loadAdminData(renderAdminList);
+        loadPublicData();
+        showToast('削除しました。');
+
+      })
+      .catch(function(error) {
+
+        hideLoading();
+        showToast(error.message);
+
+      });
+
+  }
+
+  /* =====================================
+     設定
+  ====================================== */
+
+  function openSettings() {
+
+    const settings = adminData.settings || {};
+
+    document.getElementById('settingClubName').value = settings['クラブ名'] || '';
+    document.getElementById('settingSubtitle').value = settings['キャッチコピー'] || '';
+    document.getElementById('settingContact').value = settings['連絡先'] || '';
+    document.getElementById('settingBannerMessage').value = adminData.bannerMessage || '';
+    document.getElementById('settingBannerEndDate').value = adminData.bannerEndDate || '';
+    updateBannerEndDateWarning_();
+
+    document.getElementById('settingsModal').style.display = 'block';
+
+  }
+
+  // 表示期限日が本日以前なら、バナーが表示されない旨の注意を出す（目安。判定の本体はサーバー側）
+  function updateBannerEndDateWarning_() {
+    const endDate = document.getElementById('settingBannerEndDate').value;
+    const now = new Date();
+    const today = now.getFullYear() + '-' +
+      ('0' + (now.getMonth() + 1)).slice(-2) + '-' +
+      ('0' + now.getDate()).slice(-2);
+
+    document.getElementById('bannerEndDateWarning').style.display =
+      endDate && endDate < today ? 'block' : 'none';
+  }
+
+  function closeSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'none';
+  }
+
+  function saveSettings() {
+
+    const settings = {
+      'クラブ名': document.getElementById('settingClubName').value,
+      'キャッチコピー': document.getElementById('settingSubtitle').value,
+      '連絡先': document.getElementById('settingContact').value,
+      'バナーメッセージ': document.getElementById('settingBannerMessage').value,
+      'バナー表示期限日': document.getElementById('settingBannerEndDate').value
+    };
+
+    showLoading();
+
+    callGasApi_('saveSettings', [adminToken, settings, navigator.userAgent])
+      .then(function() {
+
+        hideLoading();
+        closeSettingsModal();
+        loadAdminData();
+        loadPublicData();
+        showToast('設定を保存しました。');
+
+      })
+      .catch(function(error) {
+
+        hideLoading();
+        showToast(error.message);
+
+      });
+
+  }
+
+  /* =====================================
+     ログアウト
+  ====================================== */
+
+  function logout() {
+
+    // サーバー側のセッションを失効させる
+    if (adminToken) {
+      callGasApi_('logoutAdmin', [adminToken])
+        .catch(function(error) {
+          console.error('管理者セッションの失効に失敗しました:', error);
+        });
+    }
+
+    // ブラウザー側のトークンと管理データを消去
+    adminToken = '';
+    adminData = {};
+    document.getElementById('courtDutyList').innerHTML = '';
+
+    // 開いているモーダルを閉じる
+    closeModal();
+    closeSettingsModal();
+
+    // 公開データを最新状態にする
+    loadPublicData();
+
+    // トップページへ戻る
+    showPage('home');
+
+    showToast('ログアウトしました。');
+
+  }
+
+  /* =====================================
+     HTMLエスケープ
+  ====================================== */
+
+  function escapeHtml(value) {
+
+    if (value === null || value === undefined) {
+      return '';
+    }
+
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+  }
+
+  /* =====================================
+     Loading
+  ====================================== */
+
+  function showLoading() {
+    document.getElementById('loading').style.display = 'block';
+  }
+
+  function hideLoading() {
+    document.getElementById('loading').style.display = 'none';
+  }
+
+  /* =====================================
+     Toast
+  ====================================== */
+
+  function showToast(message) {
+
+    const toast = document.getElementById('toast');
+
+    toast.textContent = message;
+    toast.style.display = 'block';
+
+    setTimeout(function() {
+      toast.style.display = 'none';
+    }, 2500);
+
+  }
+
+  /* =====================================
+     モーダル外クリックで閉じる
+  ====================================== */
+
+  window.onclick = function(event) {
+
+    if (event.target.classList && event.target.classList.contains('modal')) {
+      event.target.style.display = 'none';
+    }
+
+  };
+
+</script>
+
+</body>
+</html>
