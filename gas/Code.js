@@ -775,9 +775,20 @@ function getCourtDutyFolder_() {
   }
   try {
     return DriveApp.getFolderById(id);
-  } catch (e) {
-    throw new Error('コート当番の保存先フォルダを開けません。IDと権限を確認してください。');
+  } catch (error) {
+    const detail = error && error.message ? error.message : String(error);
+    console.error('コート当番の保存先フォルダを開けません:', detail);
+    throw new Error(
+      'コート当番の保存先フォルダを開けません。COURT_DUTY_FOLDER_IDとGASの実行ユーザーの権限を確認してください。詳細: ' +
+      detail
+    );
   }
+}
+
+function verifyCourtDutyFolderAccess() {
+  const folder = getCourtDutyFolder_();
+  console.log('コート当番フォルダへのアクセスを確認しました:', folder.getName());
+  return true;
 }
 
 // ファイル一覧（更新日時の新しい順）
