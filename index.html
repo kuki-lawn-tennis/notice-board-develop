@@ -187,6 +187,66 @@
     }
 
     /* =========================
+       ホーム下部：便利ツールのリンク
+    ========================= */
+
+    .home-footer {
+      margin: 0 16px;
+      padding: 18px 0 8px;
+      border-top: 1px solid #dde5e1;
+      text-align: left;
+    }
+
+    /* 折りたたみ見出し（<details>/<summary>で実現） */
+    .home-footer-title {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 6px;
+      padding: 6px 0;
+      color: #777;
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+
+    .home-footer-title::-webkit-details-marker {
+      display: none;
+    }
+
+    .home-footer-title::after {
+      content: '▾';
+      font-size: 14px;
+      transition: transform .2s;
+    }
+
+    .home-footer[open] .home-footer-title::after {
+      transform: rotate(180deg);
+    }
+
+    .home-footer-links {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .home-footer-link {
+      padding: 8px 0;
+      color: #1f6b43;
+      font-size: 15px;
+      text-decoration: underline;
+    }
+
+    .home-footer-link:active {
+      opacity: .6;
+    }
+
+    /* =========================
        ページヘッダー
     ========================= */
 
@@ -277,98 +337,6 @@
       font-size: 17px;
       background: #dcf0e2;
       color: #1f6b43;
-    }
-
-    .global-footer {
-      flex-shrink: 0;
-      width: 100%;
-      margin-top: auto;
-      border-top: 1px solid #e4e7e8;
-      background: #f4f7f8;
-    }
-
-    .footer-inner {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 10px 16px 18px;
-    }
-
-    .footer-column {
-      border-bottom: 1px solid #e4e7e8;
-    }
-
-    .footer-column > summary {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 4px;
-      color: #1d1d1f;
-      font-size: 12px;
-      font-weight: 600;
-      list-style: none;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .footer-column > summary::-webkit-details-marker { display: none; }
-    .footer-column > summary::marker { display: none; }
-
-    .footer-column > summary::after {
-      width: 8px;
-      height: 8px;
-      margin-right: 4px;
-      border-right: 1.5px solid #6e6e73;
-      border-bottom: 1.5px solid #6e6e73;
-      content: "";
-      transform: rotate(45deg);
-      transition: transform .2s ease;
-    }
-
-    .footer-column[open] > summary::after {
-      transform: rotate(-135deg);
-    }
-
-    .footer-column > summary:focus-visible,
-    .footer-column a:focus-visible {
-      outline: 2px solid #1f6b43;
-      outline-offset: 2px;
-    }
-
-    .footer-column ul {
-      margin: 0;
-      padding: 0 4px 14px;
-      list-style: none;
-    }
-
-    .footer-column li + li {
-      margin-top: 8px;
-    }
-
-    .footer-column a {
-      display: flex;
-      min-height: 42px;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: #f4f7f8;
-      color: #35634b;
-      font-size: 11px;
-      line-height: 1.5;
-      text-decoration: none;
-      transition: background-color .2s ease, color .2s ease;
-    }
-
-    .footer-column a:hover {
-      background: #e9eeee;
-      color: #1f6b43;
-    }
-
-    .footer-column a span {
-      flex-shrink: 0;
-      color: #7b8b81;
-      font-size: 15px;
     }
 
     .empty {
@@ -853,17 +821,15 @@
 
     </div>
 
-    <footer class="global-footer">
-      <div class="footer-inner">
-        <details class="footer-column">
-          <summary>便利ツール</summary>
-          <ul>
-            <li><a href="https://kuki-lawn-tennis.github.io/random/">乱数表<span aria-hidden="true">↗</span></a></li>
-            <li><a href="https://kuki-lawn-tennis.github.io/tennis-match/">テニスダブルス組み合わせ抽選<span aria-hidden="true">↗</span></a></li>
-          </ul>
-        </details>
+    <!-- 便利ツールのリンク（ホーム画面のフッター）
+         ※ 名称とURLは実際のものに書き換えてください -->
+    <details class="home-footer" open>
+      <summary class="home-footer-title">便利ツール</summary>
+      <div class="home-footer-links">
+        <a class="home-footer-link" href="https://kuki-lawn-tennis.github.io/random/" target="_blank" rel="noopener noreferrer">乱数表</a>
+        <a class="home-footer-link" href="https://kuki-lawn-tennis.github.io/tennis-match/" target="_blank" rel="noopener noreferrer">テニスダブルス組み合わせ抽選</a>
       </div>
-    </footer>
+    </details>
 
   </div>
 
