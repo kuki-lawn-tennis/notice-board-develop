@@ -1369,6 +1369,8 @@
   let gasApiConnectionError = null;
   let gasApiRequestId = 0;
   let gasApiHandshakeTimer = null;
+  let gasApiConfigured = false;
+  let gasApiReconnectOnReady = false;
 
   gasApiFrame.title = 'Google Apps Script API';
   gasApiFrame.setAttribute('aria-hidden', 'true');
@@ -1474,6 +1476,8 @@
       if (!event.source || !isGasApiOrigin_(event.origin)) return;
       if (gasApiWindow && event.source !== gasApiWindow) return;
 
+      const reconnecting = gasApiReconnectOnReady;
+      gasApiReconnectOnReady = false;
       gasApiWindow = event.source;
       gasApiOrigin = event.origin;
       gasApiReady = true;
@@ -1488,6 +1492,7 @@
         gasApiPending.set(request.id, request);
         sendGasApiRequest_(request);
       }
+      if (reconnecting) loadPublicData();
       return;
     }
 
@@ -1538,6 +1543,7 @@
     gasApiFrame.addEventListener('error', function() {
       rejectPendingGasApiCalls_(new Error('GAS APIを読み込めませんでした。デプロイURLを確認してください。'));
     });
+    gasApiConfigured = true;
     const gasApiUrl = new URL(GAS_WEB_APP_URL);
     gasApiUrl.searchParams.set('nonce', GAS_API_NONCE);
     gasApiUrl.searchParams.set('parentOrigin', location.origin);
@@ -1545,6 +1551,22 @@
   }
 
   document.body.appendChild(gasApiFrame);
+
+  document.addEventListener('visibilitychange', function() {
+    if (
+      document.visibilityState !== 'visible' ||
+      !gasApiConfigured ||
+      (!gasApiConnectionError && !gasApiHandshakeTimer)
+    ) return;
+
+    gasApiReconnectOnReady = gasApiReconnectOnReady || Boolean(gasApiConnectionError);
+    gasApiConnectionError = null;
+    if (gasApiHandshakeTimer) {
+      clearTimeout(gasApiHandshakeTimer);
+      gasApiHandshakeTimer = null;
+    }
+    gasApiFrame.src = gasApiFrame.src;
+  });
 
   // 管理者ログイン後に発行される、期限付きセッショントークン（パスワードではありません）
   let adminToken = '';
