@@ -1369,6 +1369,7 @@
   let gasApiConnectionError = null;
   let gasApiRequestId = 0;
   let gasApiHandshakeTimer = null;
+  let gasApiHandshakeRetryCount = 0;
   let gasApiConfigured = false;
   let gasApiReconnectOnReady = false;
 
@@ -1482,6 +1483,7 @@
       gasApiOrigin = event.origin;
       gasApiReady = true;
       gasApiConnectionError = null;
+      gasApiHandshakeRetryCount = 0;
       if (gasApiHandshakeTimer) {
         clearTimeout(gasApiHandshakeTimer);
         gasApiHandshakeTimer = null;
@@ -1535,6 +1537,12 @@
 
       if (gasApiHandshakeTimer) clearTimeout(gasApiHandshakeTimer);
       gasApiHandshakeTimer = setTimeout(function() {
+        gasApiHandshakeTimer = null;
+        if (gasApiHandshakeRetryCount < 1) {
+          gasApiHandshakeRetryCount++;
+          gasApiFrame.src = gasApiFrame.src;
+          return;
+        }
         rejectPendingGasApiCalls_(new Error(
           'GAS APIとの接続を確認できません。GITHUB_PAGES_ORIGINSの設定とGASのデプロイを確認してください。'
         ));
@@ -1552,20 +1560,24 @@
 
   document.body.appendChild(gasApiFrame);
 
-  document.addEventListener('visibilitychange', function() {
-    if (
-      document.visibilityState !== 'visible' ||
-      !gasApiConfigured ||
-      (!gasApiConnectionError && !gasApiHandshakeTimer)
-    ) return;
-
+  function retryGasApiConnection_() {
+    if (!gasApiConfigured || (!gasApiConnectionError && !gasApiHandshakeTimer)) return;
     gasApiReconnectOnReady = gasApiReconnectOnReady || Boolean(gasApiConnectionError);
     gasApiConnectionError = null;
+    gasApiHandshakeRetryCount = 0;
     if (gasApiHandshakeTimer) {
       clearTimeout(gasApiHandshakeTimer);
       gasApiHandshakeTimer = null;
     }
     gasApiFrame.src = gasApiFrame.src;
+  }
+
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') retryGasApiConnection_();
+  });
+
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted) retryGasApiConnection_();
   });
 
   // 管理者ログイン後に発行される、期限付きセッショントークン（パスワードではありません）
