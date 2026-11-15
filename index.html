@@ -296,7 +296,27 @@
     .list-title {
       font-size: 17px;
       font-weight: bold;
+      margin-bottom: 0;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .list-title::-webkit-details-marker {
+      display: none;
+    }
+
+    .list-title::after {
+      content: '▼';
+      float: right;
+      margin-left: 12px;
+    }
+
+    .list-card[open] > .list-title {
       margin-bottom: 8px;
+    }
+
+    .list-card[open] > .list-title::after {
+      content: '▲';
     }
 
     .list-content {
@@ -1800,12 +1820,20 @@
     }
 
     data.forEach(function(item) {
-      const card = document.createElement('div');
+      const card = document.createElement('details');
       card.className = 'list-card';
       card.innerHTML =
+        '<summary class="list-title">' + escapeHtml(item[titleField]) + '</summary>' +
+        '<div class="list-details">' +
         (showDate ? '<div class="list-date">' + escapeHtml(item.日付) + '</div>' : '') +
-        '<div class="list-title">' + escapeHtml(item[titleField]) + '</div>' +
-        '<div class="list-content">' + sanitizeRichTextHtml_(item.内容) + '</div>';
+        '<div class="list-content">' + sanitizeRichTextHtml_(item.内容) + '</div>' +
+        '</div>';
+      card.addEventListener('toggle', function() {
+        if (!card.open) return;
+        document.querySelectorAll('.list-card[open]').forEach(function(openCard) {
+          if (openCard !== card) openCard.open = false;
+        });
+      });
       const attachments = Array.isArray(item['添付ファイル']) ? item['添付ファイル'] : [];
       if (attachments.length) {
         const attachmentList = document.createElement('div');
@@ -1820,7 +1848,7 @@
           link.textContent = '📎 ' + String(file.name || '添付ファイル');
           attachmentList.appendChild(link);
         });
-        if (attachmentList.childNodes.length) card.appendChild(attachmentList);
+        if (attachmentList.childNodes.length) card.querySelector('.list-details').appendChild(attachmentList);
       }
       container.appendChild(card);
     });
