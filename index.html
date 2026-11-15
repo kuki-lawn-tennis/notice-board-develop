@@ -546,12 +546,34 @@
       margin-bottom: 8px;
     }
 
+    .edit-attachment-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
     .edit-attachment-link,
     .public-attachment-link {
       display: inline-block;
       color: #1f6b43;
       text-decoration: underline;
       overflow-wrap: anywhere;
+    }
+
+    .edit-attachment-link {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .edit-attachment-remove {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: none;
+      border-radius: 7px;
+      background: #fff0f0;
+      color: #d33;
+      font-weight: bold;
     }
 
     .attachment-note {
@@ -1215,7 +1237,7 @@
       <div id="editAttachments" class="edit-attachment-list"></div>
       <input id="editFiles" type="file" multiple
              accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.csv,.txt,.png,.jpg,.jpeg,.gif,.webp">
-      <p class="attachment-note">PDF・Office・CSV・テキスト・画像（1回の保存で合計10MB、5ファイルまで）。アップロードしたファイルは「リンクを知っている全員」が閲覧できます。</p>
+      <p class="attachment-note">PDF・Office・CSV・テキスト・画像（1回の保存で合計10MB、5ファイルまで）。既存ファイルの削除は保存時に反映されます。アップロードしたファイルは「リンクを知っている全員」が閲覧できます。</p>
     </div>
 
     <div id="publicGroup" class="form-group">
@@ -1510,6 +1532,7 @@
   let adminData = {};
 
   let currentManager = 'notice';
+  let pendingEditAttachments = [];
 
   // 管理画面の種類ごとの設定
   const TYPE_CONFIG = {
@@ -2349,7 +2372,10 @@
     document.getElementById('editContent').innerHTML = sanitizeRichTextHtml_(item ? item.内容 : '');
     document.getElementById('editName').value = item ? (item[cfg.titleField] || '') : '';
     document.getElementById('editFiles').value = '';
-    renderEditAttachments_(item && item['添付ファイル']);
+    pendingEditAttachments = item && Array.isArray(item['添付ファイル'])
+      ? item['添付ファイル'].map(function(file) { return { id: file.id, name: file.name }; })
+      : [];
+    renderEditAttachments_(pendingEditAttachments);
     closeRichPalettes_();
     document.getElementById('nameLabel').textContent = cfg.nameLabel;
 
@@ -2497,14 +2523,33 @@
     container.innerHTML = '';
     (Array.isArray(attachments) ? attachments : []).forEach(function(file) {
       if (!file || !/^[\w-]{25,}$/.test(String(file.id || ''))) return;
+      const row = document.createElement('div');
+      row.className = 'edit-attachment-row';
       const link = document.createElement('a');
       link.className = 'edit-attachment-link';
       link.href = 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(file.id);
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.textContent = '📎 ' + String(file.name || '添付ファイル');
-      container.appendChild(link);
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'edit-attachment-remove';
+      removeButton.textContent = '削除';
+      removeButton.setAttribute('aria-label', String(file.name || '添付ファイル') + 'を削除');
+      removeButton.addEventListener('click', function() {
+        removeEditAttachment_(file.id, file.name);
+      });
+      row.append(link, removeButton);
+      container.appendChild(row);
     });
+  }
+
+  function removeEditAttachment_(fileId, fileName) {
+    if (!confirm('「' + fileName + '」を添付から外しますか？保存するとDriveのゴミ箱へ移動します。')) return;
+    pendingEditAttachments = pendingEditAttachments.filter(function(file) {
+      return String(file.id) !== String(fileId);
+    });
+    renderEditAttachments_(pendingEditAttachments);
   }
 
   function readItemAttachment_(file) {
@@ -2552,9 +2597,6 @@
       return;
     }
 
-    const item = getCurrentAdminData().find(function(entry) {
-      return String(entry.ID) === String(document.getElementById('editId').value);
-    });
     const selectedFiles = Array.from(document.getElementById('editFiles').files || []);
     const totalFileSize = selectedFiles.reduce(function(total, file) { return total + file.size; }, 0);
     if (selectedFiles.length > ITEM_ATTACHMENT_MAX_FILES) {
@@ -2572,7 +2614,9 @@
       内容: sanitizeRichTextHtml_(document.getElementById('editContent').innerHTML),
       公開: selectedPublicOption ? selectedPublicOption.value : 'TRUE',
       表示順: displayOrder,
-      '添付ファイル': item && Array.isArray(item['添付ファイル']) ? item['添付ファイル'] : []
+      '添付ファイル': pendingEditAttachments.map(function(file) {
+        return { id: file.id, name: file.name };
+      })
     };
     data[cfg.titleField] = document.getElementById('editName').value;
 
