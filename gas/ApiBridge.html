@@ -21,6 +21,7 @@
     'logoutAdmin',
     'saveDisplayOrder',
     'saveItem',
+    'saveItemWithAttachments',
     'savePageAccessLog',
     'saveSettings',
     'saveTopAccessSummary',
@@ -57,9 +58,13 @@
       const message = event.data;
       if (message.nonce !== channelNonce || message.type !== 'gas-api-request') return;
 
-      if (typeof message.id !== 'string' || !allowedMethods.has(message.method) ||
-          !Array.isArray(message.args)) {
-        respond_(message, false, 'APIリクエストが正しくありません。');
+      if (typeof message.id !== 'string' || !message.id) return;
+      if (typeof message.method !== 'string' || !allowedMethods.has(message.method)) {
+        respond_(message, false, '未許可のAPIメソッドです: ' + String(message.method || '未指定'));
+        return;
+      }
+      if (!Array.isArray(message.args)) {
+        respond_(message, false, 'API引数の形式が正しくありません。');
         return;
       }
 

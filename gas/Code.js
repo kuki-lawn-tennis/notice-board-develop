@@ -15,16 +15,16 @@ const SHEET_NAMES = {
 };
 
 const CONTENT_SHEET_HEADERS = {
-  [SHEET_NAMES.NOTICE]: ['ID', '日付', 'タイトル', '内容', '公開'],
-  [SHEET_NAMES.EVENT]: ['ID', '日付', 'イベント名', '内容', '公開'],
-  [SHEET_NAMES.SCHEDULE]: ['ID', 'タイトル', '内容', '公開']
+  [SHEET_NAMES.NOTICE]: ['ID', '日付', 'タイトル', '内容', '公開', '添付ファイル'],
+  [SHEET_NAMES.EVENT]: ['ID', '日付', 'イベント名', '内容', '公開', '添付ファイル'],
+  [SHEET_NAMES.SCHEDULE]: ['ID', 'タイトル', '内容', '公開', '添付ファイル']
 };
 
 // 種類ごとの設定（保存・削除・表示順変更で共通利用）
 const TYPE_CONFIG = {
-  notice:   { sheet: SHEET_NAMES.NOTICE,   label: 'お知らせ' },
-  event:    { sheet: SHEET_NAMES.EVENT,    label: 'イベント' },
-  schedule: { sheet: SHEET_NAMES.SCHEDULE, label: 'スケジュール' }
+  notice:   { sheet: SHEET_NAMES.NOTICE,   label: 'お知らせ',     attachmentFolderProperty: 'NOTICE_ATTACHMENTS_FOLDER_ID' },
+  event:    { sheet: SHEET_NAMES.EVENT,    label: 'イベント',     attachmentFolderProperty: 'EVENT_ATTACHMENTS_FOLDER_ID' },
+  schedule: { sheet: SHEET_NAMES.SCHEDULE, label: 'スケジュール', attachmentFolderProperty: 'SCHEDULE_ATTACHMENTS_FOLDER_ID' }
 };
 
 function getTypeConfig_(type) {
@@ -594,6 +594,7 @@ function getSheetData_(sheetName, includePrivate) {
     headers.forEach(function(header, index) {
       obj[header] = row[index];
     });
+    obj['添付ファイル'] = parseBoardAttachments_(obj['添付ファイル']);
 
     // 公開データでは非公開を除外
     if (!includePrivate) {
@@ -650,7 +651,94 @@ function saveItem(token, type, data, userAgent) {
   requireAdmin_(token);
 
   const cfg = getTypeConfig_(type);
-  const result = saveData_(cfg.sheet, data || {});
+  return saveItemWithAttachments_(cfg, data, [], userAgent);
+}
+
+function saveItemWithAttachments(token, type, data, uploads, userAgent) {
+  requireAdmin_(token);
+  const cfg = getTypeConfig_(type);
+  return saveItemWithAttachments_(cfg, data, uploads, userAgent);
+}
+
+function saveItemWithAttachments_(cfg, data, uploads, userAgent) {
+  const itemData = Object.assign({}, data || {});
+  let attachmentInput = itemData['添付ファイル'];
+  const currentItem = itemData.ID
+    ? getSheetData_(cfg.sheet, true).find(function(item) {
+      return String(item.ID) === String(itemData.ID);
+    })
+    : null;
+  if (!Array.isArray(attachmentInput)) {
+    attachmentInput = currentItem ? currentItem['添付ファイル'] : [];
+  }
+  const retainedIds = Array.isArray(attachmentInput)
+    ? attachmentInput.map(function(file) {
+        return typeof file === 'string' ? file : String(file && file.id || '');
+      })
+    : [];
+  const previousAttachments = currentItem && Array.isArray(currentItem['添付ファイル'])
+    ? currentItem['添付ファイル']
+    : [];
+  const previousIdSet = {};
+  previousAttachments.forEach(function(file) {
+    previousIdSet[String(file.id)] = true;
+  });
+  const retainedIdSet = {};
+  retainedIds.forEach(function(id) {
+    if (!id || retainedIdSet[id]) throw new Error('添付ファイルの指定が重複、または正しくありません。');
+    if (!previousIdSet[id]) throw new Error('この投稿に添付されていないファイルは指定できません。');
+    retainedIdSet[id] = true;
+  });
+  if (!Array.isArray(uploads)) throw new Error('添付ファイルデータが正しくありません。');
+  const pendingUploads = uploads;
+  if (pendingUploads.length > BOARD_ATTACHMENT_MAX_FILES) {
+    throw new Error('一度にアップロードできるファイルは' + BOARD_ATTACHMENT_MAX_FILES + '件までです。');
+  }
+
+  const createdFiles = [];
+  const trashedFiles = [];
+  let result;
+  try {
+    const attachments = retainedIds.map(function(id) {
+      return getBoardAttachmentMetadata_(cfg, id);
+    });
+    const folder = pendingUploads.length ? getBoardAttachmentFolder_(cfg) : null;
+    let totalBytes = 0;
+    pendingUploads.forEach(function(upload) {
+      const file = createBoardAttachment_(folder, upload, createdFiles);
+      totalBytes += file.size;
+      if (totalBytes > BOARD_ATTACHMENT_MAX_BYTES) {
+        throw new Error('添付ファイルの合計サイズは10MBまでです。');
+      }
+      attachments.push({ id: file.id, name: file.name });
+    });
+
+    previousAttachments.forEach(function(previousFile) {
+      if (retainedIdSet[String(previousFile.id)]) return;
+      const file = getBoardAttachmentFile_(cfg, previousFile.id);
+      file.setTrashed(true);
+      trashedFiles.push(file);
+    });
+
+    itemData['添付ファイル'] = JSON.stringify(attachments);
+    result = saveData_(cfg.sheet, itemData);
+  } catch (error) {
+    trashedFiles.forEach(function(file) {
+      try {
+        file.setTrashed(false);
+      } catch (restoreError) {
+        console.error('保存失敗後に添付ファイルを復元できませんでした:', restoreError);
+      }
+    });
+    createdFiles.forEach(function(file) {
+      try {
+        file.setTrashed(true);
+      } catch (cleanupError) {
+        console.error('保存失敗後の添付ファイル削除に失敗しました:', cleanupError);
+      }
+    });
+    throw error;
+  }
   recordAdminActionAccessLog_(cfg.label + '保存完了', userAgent);
   return result;
 }
@@ -789,6 +877,133 @@ function verifyCourtDutyFolderAccess() {
   const folder = getCourtDutyFolder_();
   console.log('コート当番フォルダへのアクセスを確認しました:', folder.getName());
   return true;
+}
+
+const BOARD_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+const BOARD_ATTACHMENT_MAX_FILES = 5;
+const BOARD_ATTACHMENT_ALLOWED_EXT = [
+  'pdf', 'xlsx', 'xls', 'docx', 'doc', 'pptx', 'ppt', 'csv',
+  'txt', 'png', 'jpg', 'jpeg', 'gif', 'webp'
+];
+
+function getBoardAttachmentFolder_(cfg) {
+  const propertyName = cfg && cfg.attachmentFolderProperty;
+  if (!propertyName) throw new Error('添付ファイルの種類が正しくありません。');
+  const value = PropertiesService.getScriptProperties().getProperty(propertyName);
+  const id = normalizeDriveFileId_(value);
+  if (!id) {
+    throw new Error(cfg.label + 'の保存先が未設定です。スクリプトプロパティ ' + propertyName + ' にDriveフォルダのIDを設定してください。');
+  }
+  try {
+    return DriveApp.getFolderById(id);
+  } catch (error) {
+    const detail = error && error.message ? error.message : String(error);
+    console.error(cfg.label + '添付ファイルの保存先フォルダを開けません:', detail);
+    throw new Error(cfg.label + 'の保存先フォルダを開けません。' + propertyName + 'とGAS実行ユーザーの権限を確認してください。詳細: ' + detail);
+  }
+}
+
+function verifyBoardAttachmentFolderAccess(type) {
+  const cfg = getTypeConfig_(type);
+  const folder = getBoardAttachmentFolder_(cfg);
+  const probe = folder.createFile('board-attachment-permission-check.txt', '権限確認用の一時ファイルです。');
+  let sharingError = null;
+  try {
+    probe.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (error) {
+    sharingError = error;
+  }
+  try {
+    probe.setTrashed(true);
+  } catch (cleanupError) {
+    console.error('権限確認用ファイルをゴミ箱へ移動できません:', cleanupError);
+    throw cleanupError;
+  }
+  if (sharingError) throw sharingError;
+  console.log(cfg.label + '添付ファイルの保存先フォルダへのアクセスを確認しました:', folder.getName());
+  return true;
+}
+
+function verifyNoticeAttachmentFolderAccess() {
+  return verifyBoardAttachmentFolderAccess('notice');
+}
+
+function verifyEventAttachmentFolderAccess() {
+  return verifyBoardAttachmentFolderAccess('event');
+}
+
+function verifyScheduleAttachmentFolderAccess() {
+  return verifyBoardAttachmentFolderAccess('schedule');
+}
+
+function createBoardAttachment_(folder, upload, createdFiles) {
+  if (!upload || typeof upload.base64 !== 'string' || !upload.base64) {
+    throw new Error('添付ファイルの内容が空です。');
+  }
+  const name = String(upload.name || '')
+    .replace(/[\\\/:*?"<>|\u0000-\u001f]/g, '_')
+    .trim();
+  const ext = name.indexOf('.') >= 0 ? name.split('.').pop().toLowerCase() : '';
+  if (!name || BOARD_ATTACHMENT_ALLOWED_EXT.indexOf(ext) === -1) {
+    throw new Error('添付できるファイル形式ではありません: ' + name);
+  }
+
+  const bytes = Utilities.base64Decode(upload.base64);
+  if (bytes.length > BOARD_ATTACHMENT_MAX_BYTES) {
+    throw new Error('添付ファイルは1件10MBまでです。');
+  }
+  const blob = Utilities.newBlob(
+    bytes,
+    String(upload.mimeType || 'application/octet-stream'),
+    name
+  );
+  const file = folder.createFile(blob);
+  createdFiles.push(file);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { id: file.getId(), name: file.getName(), size: bytes.length };
+}
+
+function getBoardAttachmentFile_(cfg, fileId) {
+  const id = String(fileId || '');
+  if (!/^[\w-]{25,}$/.test(id)) throw new Error('添付ファイルの指定が正しくありません。');
+
+  let file;
+  try {
+    file = DriveApp.getFileById(id);
+  } catch (error) {
+    throw new Error('添付ファイルが見つかりません: ' + id);
+  }
+  const parents = file.getParents();
+  const allowedFolderId = normalizeDriveFileId_(
+    PropertiesService.getScriptProperties().getProperty(cfg.attachmentFolderProperty)
+  );
+  while (parents.hasNext()) {
+    if (parents.next().getId() === allowedFolderId) {
+      return file;
+    }
+  }
+  throw new Error('この種類の添付用フォルダ以外のファイルは指定できません。');
+}
+
+function getBoardAttachmentMetadata_(cfg, fileId) {
+  const file = getBoardAttachmentFile_(cfg, fileId);
+  return { id: file.getId(), name: file.getName() };
+}
+
+function parseBoardAttachments_(value) {
+  if (value === '' || value === null || value === undefined) return [];
+  try {
+    const parsed = JSON.parse(String(value));
+    if (!Array.isArray(parsed)) throw new Error('添付ファイル情報が配列ではありません。');
+    return parsed.filter(function(file) {
+      return file && /^[\w-]{25,}$/.test(String(file.id || '')) && typeof file.name === 'string';
+    }).map(function(file) {
+      return { id: String(file.id), name: file.name };
+    });
+  } catch (error) {
+    console.error('添付ファイル情報を読み取れません:', error);
+    return [];
+  }
 }
 
 // ファイル一覧（更新日時の新しい順）
@@ -942,6 +1157,10 @@ function saveData_(sheetName, data) {
     if (header === '登録日時') return registrationTime;
     if (header === '更新日時') return now;
     if (header === '表示順') return displayOrder;
+    if (header === '内容') return sanitizeCell_(sanitizeRichTextHtml_(data[header]));
+    if (header === '添付ファイル') {
+      return typeof data[header] === 'string' ? data[header] : JSON.stringify(data[header] || []);
+    }
     return sanitizeCell_(data[header]);
   });
 
@@ -964,6 +1183,49 @@ function saveData_(sheetName, data) {
     success: true,
     id: id
   };
+}
+
+function sanitizeRichTextHtml_(value) {
+  const allowedColors = [
+    '#000000', '#d32f2f', '#ef6c00', '#f9a825',
+    '#2e7d32', '#1565c0', '#6a1b9a', '#ffffff'
+  ];
+  const allowedTags = {
+    b: true, strong: true, u: true, s: true, strike: true, del: true,
+    i: true, em: true, a: true, span: true, br: true, p: true,
+    div: true, ul: true, ol: true, li: true
+  };
+  const html = String(value || '').replace(/<!--[\s\S]*?-->/g, '');
+  return html.replace(/<\/?([a-z][a-z0-9]*)\b([^>]*)>/gi, function(tag, rawName, attrs) {
+    const name = rawName.toLowerCase();
+    if (!allowedTags[name]) return '';
+    if (tag.charAt(1) === '/') return name === 'br' ? '' : '</' + name + '>';
+    if (name === 'br') return '<br>';
+
+    if (name === 'a') {
+      const hrefMatch = attrs.match(/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+      const href = hrefMatch && (hrefMatch[1] || hrefMatch[2] || hrefMatch[3] || '')
+        .replace(/&amp;/gi, '&')
+        .trim();
+      if (!href || !/^(https?:\/\/|mailto:)/i.test(href)) return '';
+      return '<a href="' + href.replace(/&/g, '&amp;').replace(/"/g, '&quot;') +
+        '" target="_blank" rel="noopener noreferrer">';
+    }
+
+    if (name === 'span') {
+      const styleMatch = attrs.match(/\bstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/i);
+      const style = styleMatch ? (styleMatch[1] || styleMatch[2] || '') : '';
+      const safeStyles = [];
+      ['color', 'background-color'].forEach(function(property) {
+        const match = style.match(new RegExp('(?:^|;)\\s*' + property + '\\s*:\\s*(#[0-9a-f]{6})\\s*(?:;|$)', 'i'));
+        const color = match && match[1].toLowerCase();
+        if (allowedColors.indexOf(color) !== -1) safeStyles.push(property + ':' + color);
+      });
+      return safeStyles.length ? '<span style="' + safeStyles.join(';') + '">' : '<span>';
+    }
+
+    return '<' + name + '>';
+  });
 }
 
 /*************************************************
