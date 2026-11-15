@@ -303,6 +303,16 @@
       white-space: pre-wrap;
       line-height: 1.7;
       font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .list-attachments {
+      display: grid;
+      gap: 5px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+      font-size: 14px;
     }
 
     /* お知らせ・イベントは文字サイズを2倍にする
@@ -450,6 +460,105 @@
     textarea {
       min-height: 130px;
       resize: vertical;
+    }
+
+    .rich-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 7px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 9px 9px 0 0;
+      background: #f7f8f8;
+    }
+
+    .rich-color-toggle {
+      padding: 4px 9px;
+      border: 1px solid #d5d9d7;
+      border-radius: 6px;
+      background: white;
+      color: #333;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .rich-color-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      width: 100%;
+    }
+
+    .rich-toolbar [hidden] {
+      display: none !important;
+    }
+
+    .rich-tool-button,
+    .rich-color-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      height: 34px;
+      padding: 4px 8px;
+      border: 1px solid #d5d9d7;
+      border-radius: 6px;
+      background: white;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .rich-color-button {
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      padding: 3px;
+    }
+
+    .rich-color-swatch {
+      width: 20px;
+      height: 20px;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+    }
+
+    .rich-editor {
+      min-height: 150px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 0 0 9px 9px;
+      background: white;
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .rich-editor:focus {
+      outline: 2px solid #9cc9aa;
+      outline-offset: 1px;
+    }
+
+    .edit-attachment-list {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .edit-attachment-link,
+    .public-attachment-link {
+      display: inline-block;
+      color: #1f6b43;
+      text-decoration: underline;
+      overflow-wrap: anywhere;
+    }
+
+    .attachment-note {
+      margin: 7px 0 0;
+      color: #666;
+      font-size: 12px;
+      line-height: 1.5;
     }
 
     .primary-button {
@@ -1066,7 +1175,47 @@
 
     <div id="contentGroup" class="form-group">
       <label class="form-label">内容</label>
-      <textarea id="editContent"></textarea>
+      <div id="richToolbar" class="rich-toolbar" role="toolbar" aria-label="文字装飾">
+        <button type="button" class="rich-tool-button" data-rich-command="bold" title="太字" aria-label="太字"><b>B</b></button>
+        <button type="button" class="rich-tool-button" data-rich-command="underline" title="アンダーライン" aria-label="アンダーライン"><u>U</u></button>
+        <button type="button" class="rich-tool-button" data-rich-command="strikeThrough" title="取り消し線" aria-label="取り消し線"><s>S</s></button>
+        <button type="button" class="rich-tool-button" data-rich-command="italic" title="斜体" aria-label="斜体"><i>I</i></button>
+        <button type="button" class="rich-tool-button" data-rich-command="createLink" title="リンク" aria-label="リンク">🔗</button>
+        <button type="button" class="rich-color-toggle" data-rich-label="文字色" data-rich-toggle="textColorPalette"
+                aria-controls="textColorPalette" aria-expanded="false">文字色 ▾</button>
+        <div id="textColorPalette" class="rich-color-palette" hidden>
+          <button type="button" class="rich-color-button" data-rich-command="foreColor" data-rich-color="#000000" title="文字色 黒" aria-label="文字色 黒"><span class="rich-color-swatch" style="background:#000000"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="foreColor" data-rich-color="#d32f2f" title="文字色 赤" aria-label="文字色 赤"><span class="rich-color-swatch" style="background:#d32f2f"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="foreColor" data-rich-color="#ef6c00" title="文字色 橙" aria-label="文字色 橙"><span class="rich-color-swatch" style="background:#ef6c00"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="foreColor" data-rich-color="#f9a825" title="文字色 黄" aria-label="文字色 黄"><span class="rich-color-swatch" style="background:#f9a825"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="foreColor" data-rich-color="#2e7d32" title="文字色 緑" aria-label="文字色 緑"><span class="rich-color-swatch" style="background:#2e7d32"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="foreColor" data-rich-color="#1565c0" title="文字色 青" aria-label="文字色 青"><span class="rich-color-swatch" style="background:#1565c0"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="foreColor" data-rich-color="#6a1b9a" title="文字色 紫" aria-label="文字色 紫"><span class="rich-color-swatch" style="background:#6a1b9a"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="foreColor" data-rich-color="#ffffff" title="文字色 白" aria-label="文字色 白"><span class="rich-color-swatch" style="background:#ffffff"></span></button>
+        </div>
+        <button type="button" class="rich-color-toggle" data-rich-label="背景色" data-rich-toggle="backgroundColorPalette"
+                aria-controls="backgroundColorPalette" aria-expanded="false">背景色 ▾</button>
+        <div id="backgroundColorPalette" class="rich-color-palette" hidden>
+          <button type="button" class="rich-color-button" data-rich-command="hiliteColor" data-rich-color="#000000" title="背景色 黒" aria-label="背景色 黒"><span class="rich-color-swatch" style="background:#000000"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="hiliteColor" data-rich-color="#d32f2f" title="背景色 赤" aria-label="背景色 赤"><span class="rich-color-swatch" style="background:#d32f2f"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="hiliteColor" data-rich-color="#ef6c00" title="背景色 橙" aria-label="背景色 橙"><span class="rich-color-swatch" style="background:#ef6c00"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="hiliteColor" data-rich-color="#f9a825" title="背景色 黄" aria-label="背景色 黄"><span class="rich-color-swatch" style="background:#f9a825"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="hiliteColor" data-rich-color="#2e7d32" title="背景色 緑" aria-label="背景色 緑"><span class="rich-color-swatch" style="background:#2e7d32"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="hiliteColor" data-rich-color="#1565c0" title="背景色 青" aria-label="背景色 青"><span class="rich-color-swatch" style="background:#1565c0"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="hiliteColor" data-rich-color="#6a1b9a" title="背景色 紫" aria-label="背景色 紫"><span class="rich-color-swatch" style="background:#6a1b9a"></span></button>
+          <button type="button" class="rich-color-button" data-rich-command="hiliteColor" data-rich-color="#ffffff" title="背景色 白" aria-label="背景色 白"><span class="rich-color-swatch" style="background:#ffffff"></span></button>
+        </div>
+      </div>
+      <div id="editContent" class="rich-editor" contenteditable="true" role="textbox"
+           aria-multiline="true" aria-label="内容"></div>
+    </div>
+
+    <div id="attachmentGroup" class="form-group">
+      <label class="form-label" for="editFiles">添付ファイル</label>
+      <div id="editAttachments" class="edit-attachment-list"></div>
+      <input id="editFiles" type="file" multiple
+             accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.csv,.txt,.png,.jpg,.jpeg,.gif,.webp">
+      <p class="attachment-note">PDF・Office・CSV・テキスト・画像（1回の保存で合計10MB、5ファイルまで）。アップロードしたファイルは「リンクを知っている全員」が閲覧できます。</p>
     </div>
 
     <div id="publicGroup" class="form-group">
@@ -1163,6 +1312,12 @@
   const GAS_WEB_APP_URL = '__GAS_WEB_APP_URL__';
   const GAS_API_TIMEOUT_MS = 300000;
   const GAS_API_NONCE = Date.now() + '-' + Math.random().toString(36).slice(2);
+  const RICH_TEXT_COLORS = [
+    '#000000', '#d32f2f', '#ef6c00', '#f9a825',
+    '#2e7d32', '#1565c0', '#6a1b9a', '#ffffff'
+  ];
+  const ITEM_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+  const ITEM_ATTACHMENT_MAX_FILES = 5;
   const gasApiFrame = document.createElement('iframe');
   const gasApiPending = new Map();
   const gasApiQueue = [];
@@ -1246,6 +1401,15 @@
       } else {
         gasApiQueue.push(request);
       }
+    });
+  }
+
+  function closeRichPalettes_() {
+    document.querySelectorAll('#richToolbar button[data-rich-toggle]').forEach(function(toggle) {
+      const palette = document.getElementById(toggle.dataset.richToggle);
+      palette.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.textContent = toggle.dataset.richLabel + ' ▾';
     });
   }
 
@@ -1364,6 +1528,8 @@
   ====================================== */
 
   window.onload = function() {
+
+    initializeRichEditor_();
 
     // 初回表示も「トップページを表示した1回」として詳細ログに記録
     showPage('home');
@@ -1616,7 +1782,23 @@
       card.innerHTML =
         (showDate ? '<div class="list-date">' + escapeHtml(item.日付) + '</div>' : '') +
         '<div class="list-title">' + escapeHtml(item[titleField]) + '</div>' +
-        '<div class="list-content">' + escapeHtml(item.内容) + '</div>';
+        '<div class="list-content">' + sanitizeRichTextHtml_(item.内容) + '</div>';
+      const attachments = Array.isArray(item['添付ファイル']) ? item['添付ファイル'] : [];
+      if (attachments.length) {
+        const attachmentList = document.createElement('div');
+        attachmentList.className = 'list-attachments';
+        attachments.forEach(function(file) {
+          if (!file || !/^[\w-]{25,}$/.test(String(file.id || ''))) return;
+          const link = document.createElement('a');
+          link.className = 'public-attachment-link';
+          link.href = 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(file.id);
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = '📎 ' + String(file.name || '添付ファイル');
+          attachmentList.appendChild(link);
+        });
+        if (attachmentList.childNodes.length) card.appendChild(attachmentList);
+      }
       container.appendChild(card);
     });
   }
@@ -2164,8 +2346,11 @@
 
     document.getElementById('editId').value = item ? item.ID : '';
     document.getElementById('editDate').value = item ? (item.日付 || '') : '';
-    document.getElementById('editContent').value = item ? (item.内容 || '') : '';
+    document.getElementById('editContent').innerHTML = sanitizeRichTextHtml_(item ? item.内容 : '');
     document.getElementById('editName').value = item ? (item[cfg.titleField] || '') : '';
+    document.getElementById('editFiles').value = '';
+    renderEditAttachments_(item && item['添付ファイル']);
+    closeRichPalettes_();
     document.getElementById('nameLabel').textContent = cfg.nameLabel;
 
     // 表示順の初期値：登録済みならその値、新規・未設定なら末尾の番号
@@ -2197,6 +2382,152 @@
     document.getElementById('editModal').style.display = 'none';
   }
 
+  function initializeRichEditor_() {
+    const toolbar = document.getElementById('richToolbar');
+    const editor = document.getElementById('editContent');
+    toolbar.addEventListener('mousedown', function(event) {
+      if (event.target.closest('button')) event.preventDefault();
+    });
+    toolbar.addEventListener('click', function(event) {
+      const toggle = event.target.closest('button[data-rich-toggle]');
+      if (toggle) {
+        const palette = document.getElementById(toggle.dataset.richToggle);
+        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+        palette.hidden = expanded;
+        toggle.setAttribute('aria-expanded', String(!expanded));
+        toggle.textContent = toggle.dataset.richLabel + (expanded ? ' ▾' : ' ▴');
+        return;
+      }
+
+      const button = event.target.closest('button[data-rich-command]');
+      if (!button) return;
+      const command = button.dataset.richCommand;
+      editor.focus();
+
+      if (command === 'createLink') {
+        const url = window.prompt('リンク先URL（https:// または mailto:）');
+        if (!url) return;
+        if (!/^(https?:\/\/|mailto:)/i.test(url.trim())) {
+          showToast('https:// または mailto: で始まるURLを入力してください。');
+          return;
+        }
+        document.execCommand('createLink', false, url.trim());
+      } else if (command === 'foreColor') {
+        document.execCommand('foreColor', false, button.dataset.richColor);
+      } else if (command === 'hiliteColor') {
+        if (!document.execCommand('hiliteColor', false, button.dataset.richColor)) {
+          document.execCommand('backColor', false, button.dataset.richColor);
+        }
+      } else {
+        document.execCommand(command, false, null);
+      }
+    });
+    editor.addEventListener('paste', function(event) {
+      event.preventDefault();
+      const text = event.clipboardData && event.clipboardData.getData('text/plain');
+      if (text) document.execCommand('insertText', false, text);
+    });
+  }
+
+  function normalizeRichColor_(value) {
+    const color = String(value || '').trim().toLowerCase();
+    if (RICH_TEXT_COLORS.indexOf(color) !== -1) return color;
+    const rgb = color.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/);
+    if (!rgb) return '';
+    const hex = '#' + rgb.slice(1).map(function(part) {
+      return Number(part).toString(16).padStart(2, '0');
+    }).join('');
+    return RICH_TEXT_COLORS.indexOf(hex) !== -1 ? hex : '';
+  }
+
+  function sanitizeRichTextHtml_(value) {
+    const source = document.createElement('template');
+    source.innerHTML = String(value == null ? '' : value);
+    const result = document.createElement('div');
+    const allowedTags = new Set([
+      'B', 'STRONG', 'U', 'S', 'STRIKE', 'DEL', 'I', 'EM', 'A',
+      'SPAN', 'FONT', 'BR', 'P', 'DIV', 'UL', 'OL', 'LI'
+    ]);
+    const blockedTags = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'SVG', 'MATH']);
+
+    function copySafeNode_(node, parent) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        parent.appendChild(document.createTextNode(node.nodeValue));
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+      const tag = node.tagName.toUpperCase();
+      if (blockedTags.has(tag)) return;
+      if (!allowedTags.has(tag)) {
+        Array.from(node.childNodes).forEach(function(child) { copySafeNode_(child, parent); });
+        return;
+      }
+
+      const outputTag = tag === 'FONT' ? 'SPAN' : tag.toLowerCase();
+      const safe = document.createElement(outputTag);
+      if (tag === 'SPAN' || tag === 'FONT') {
+        const textColor = normalizeRichColor_(tag === 'FONT' ? node.getAttribute('color') : node.style.color);
+        const backgroundColor = normalizeRichColor_(node.style.backgroundColor);
+        const styles = [];
+        if (textColor) styles.push('color:' + textColor);
+        if (backgroundColor) styles.push('background-color:' + backgroundColor);
+        if (styles.length) safe.setAttribute('style', styles.join(';'));
+      } else if (tag === 'A') {
+        const href = String(node.getAttribute('href') || '').trim();
+        if (/^(https?:\/\/|mailto:)/i.test(href)) {
+          safe.setAttribute('href', href);
+          safe.target = '_blank';
+          safe.rel = 'noopener noreferrer';
+        }
+      }
+      if (tag !== 'BR') {
+        Array.from(node.childNodes).forEach(function(child) { copySafeNode_(child, safe); });
+      }
+      if (tag !== 'A' || safe.hasAttribute('href')) parent.appendChild(safe);
+      else Array.from(safe.childNodes).forEach(function(child) { parent.appendChild(child); });
+    }
+
+    Array.from(source.content.childNodes).forEach(function(node) { copySafeNode_(node, result); });
+    return result.innerHTML;
+  }
+
+  function renderEditAttachments_(attachments) {
+    const container = document.getElementById('editAttachments');
+    container.innerHTML = '';
+    (Array.isArray(attachments) ? attachments : []).forEach(function(file) {
+      if (!file || !/^[\w-]{25,}$/.test(String(file.id || ''))) return;
+      const link = document.createElement('a');
+      link.className = 'edit-attachment-link';
+      link.href = 'https://drive.google.com/uc?export=download&id=' + encodeURIComponent(file.id);
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = '📎 ' + String(file.name || '添付ファイル');
+      container.appendChild(link);
+    });
+  }
+
+  function readItemAttachment_(file) {
+    return new Promise(function(resolve, reject) {
+      const reader = new FileReader();
+      reader.onerror = function() { reject(new Error('添付ファイルを読み込めませんでした: ' + file.name)); };
+      reader.onload = function() {
+        const result = String(reader.result || '');
+        const comma = result.indexOf(',');
+        if (comma < 0) {
+          reject(new Error('添付ファイルの形式を読み取れませんでした: ' + file.name));
+          return;
+        }
+        resolve({
+          name: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          base64: result.slice(comma + 1)
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   /* =====================================
      保存
   ====================================== */
@@ -2221,21 +2552,42 @@
       return;
     }
 
+    const item = getCurrentAdminData().find(function(entry) {
+      return String(entry.ID) === String(document.getElementById('editId').value);
+    });
+    const selectedFiles = Array.from(document.getElementById('editFiles').files || []);
+    const totalFileSize = selectedFiles.reduce(function(total, file) { return total + file.size; }, 0);
+    if (selectedFiles.length > ITEM_ATTACHMENT_MAX_FILES) {
+      showToast('一度に添付できるファイルは5件までです。');
+      return;
+    }
+    if (totalFileSize > ITEM_ATTACHMENT_MAX_BYTES) {
+      showToast('添付ファイルの合計サイズは10MBまでです。');
+      return;
+    }
+
     const data = {
       ID: document.getElementById('editId').value,
       日付: cfg.hasDate ? date : '',
-      内容: document.getElementById('editContent').value,
+      内容: sanitizeRichTextHtml_(document.getElementById('editContent').innerHTML),
       公開: selectedPublicOption ? selectedPublicOption.value : 'TRUE',
-      表示順: displayOrder
+      表示順: displayOrder,
+      '添付ファイル': item && Array.isArray(item['添付ファイル']) ? item['添付ファイル'] : []
     };
     data[cfg.titleField] = document.getElementById('editName').value;
 
     showLoading();
 
-    callGasApi_('saveItem', [adminToken, currentManager, data, navigator.userAgent])
+    Promise.all(selectedFiles.map(readItemAttachment_))
+      .then(function(uploads) {
+        return callGasApi_('saveItemWithAttachments', [
+          adminToken, currentManager, data, uploads, navigator.userAgent
+        ]);
+      })
       .then(function() {
 
         hideLoading();
+        document.getElementById('editFiles').value = '';
         closeModal();
         loadAdminData(renderAdminList);
         loadPublicData();
