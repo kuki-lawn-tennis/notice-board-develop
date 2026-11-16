@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - index.html
+      - style.css
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 
@@ -54,10 +55,29 @@ jobs:
           index.write_text(html.replace(placeholder, json.dumps(url)), encoding="utf-8")
           PY
 
+      - name: Add cache-busting version to style.css link
+        env:
+          ASSET_VERSION: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+
+          index = pathlib.Path("index.html")
+          html = index.read_text(encoding="utf-8")
+          link = 'href="style.css"'
+          if html.count(link) != 1:
+              raise SystemExit("Expected exactly one style.css link in index.html.")
+
+          version = os.environ["ASSET_VERSION"][:12]
+          index.write_text(html.replace(link, f'href="style.css?v={version}"'), encoding="utf-8")
+          PY
+
       - name: Prepare Pages artifact
         run: |
           mkdir _site
           cp index.html _site/index.html
+          cp style.css _site/style.css
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -67,3 +87,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        
