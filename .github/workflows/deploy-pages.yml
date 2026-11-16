@@ -8,6 +8,7 @@ on:
       - index.html
       - style.css
       - .github/workflows/deploy-pages.yml
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,6 +21,8 @@ concurrency:
 
 jobs:
   deploy:
+    # 手動実行でも main ブランチ以外ではデプロイしない
+    if: github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
