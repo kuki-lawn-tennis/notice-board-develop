@@ -2811,6 +2811,11 @@
 
   function logout() {
 
+    // 誤操作防止のため、ログアウト前に確認する
+    if (!confirm('ログアウトしますか？')) {
+      return;
+    }
+
     // サーバー側のセッションを失効させる
     if (adminToken) {
       callGasApi_('logoutAdmin', [adminToken])
