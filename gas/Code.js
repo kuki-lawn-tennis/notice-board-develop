@@ -108,13 +108,15 @@ function setupSheets() {
 
   // -------------------------
   // アクセスログ / アクセス集計
+  // （ACCESS_LOG_SPREADSHEET_ID のスプレッドシートに作成。未設定ならこのスプレッドシート）
   // -------------------------
+  const logSs = getAccessLogSpreadsheet_();
   createSheetIfNotExists_(
-    ss,
+    logSs,
     SHEET_NAMES.ACCESS_LOG,
     ['日時', 'ページ', '端末', 'ブラウザー種類', 'ユーザーエージェント']
   );
-  createSheetIfNotExists_(ss, SHEET_NAMES.ACCESS_SUMMARY, ['日付', 'アクセス数']);
+  createSheetIfNotExists_(logSs, SHEET_NAMES.ACCESS_SUMMARY, ['日付', 'アクセス数']);
 
   consolidateAccessSummary_();
   createAccessLogCleanupTrigger_();
@@ -1331,14 +1333,52 @@ function toDateKey_(value) {
 }
 
 /*************************************************
+ * アクセスログ・アクセス集計の保存先スプレッドシート
+ *
+ * スクリプトプロパティ ACCESS_LOG_SPREADSHEET_ID に、
+ * 別のスプレッドシートのID（またはURL）を設定する。
+ * 未設定の場合は、このスクリプトのスプレッドシートを使う。
+ *************************************************/
+function getAccessLogSpreadsheet_() {
+
+  const value = PropertiesService.getScriptProperties().getProperty('ACCESS_LOG_SPREADSHEET_ID');
+  const id = normalizeDriveFileId_(value);
+
+  if (!id) {
+    return SpreadsheetApp.getActiveSpreadsheet();
+  }
+
+  try {
+    return SpreadsheetApp.openById(id);
+  } catch (error) {
+    const detail = error && error.message ? error.message : String(error);
+    console.error('アクセスログ用スプレッドシートを開けません:', detail);
+    throw new Error(
+      'アクセスログ用スプレッドシートを開けません。ACCESS_LOG_SPREADSHEET_IDとGASの実行ユーザーの権限を確認してください。詳細: ' +
+      detail
+    );
+  }
+}
+
+// アクセスログ用スプレッドシートのシートを取得（なければ null）
+function getAccessLogSheet_(sheetName) {
+  return getAccessLogSpreadsheet_().getSheetByName(sheetName);
+}
+
+// エディタから実行して、保存先スプレッドシートを開けるか確認する
+function verifyAccessLogSpreadsheetAccess() {
+  const ss = getAccessLogSpreadsheet_();
+  console.log('アクセスログの保存先スプレッドシートを確認しました:', ss.getName());
+  return true;
+}
+
+/*************************************************
  * アクセスログ（共通処理）
  * 日時・ページ・端末・ブラウザー種類・ユーザーエージェントを1行追加
  *************************************************/
 function appendAccessLog_(page, userAgent) {
 
-  const sheet = SpreadsheetApp
-    .getActiveSpreadsheet()
-    .getSheetByName(SHEET_NAMES.ACCESS_LOG);
+  const sheet = getAccessLogSheet_(SHEET_NAMES.ACCESS_LOG);
 
   if (!sheet) {
     throw new Error('アクセスログシートがありません。setupSheets()を一度実行してください。');
@@ -1390,13 +1430,13 @@ function recordAdminActionAccessLog_(action, userAgent) {
  *************************************************/
 function saveTopAccessSummary() {
 
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.ACCESS_SUMMARY);
+  const sheet = getAccessLogSheet_(SHEET_NAMES.ACCESS_SUMMARY);
   if (!sheet) throw new Error('アクセス集計シートがありません。setupSheets()を一度実行してください。');
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const dateString = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    const dateString = formatDate_(new Date());
     const lastRow = sheet.getLastRow();
     if (lastRow < 2) { sheet.appendRow([dateString, 1]); return true; }
 
@@ -1404,7 +1444,7 @@ function saveTopAccessSummary() {
     let total = 1, firstRow = 0;
     const duplicates = [];
     for (let i = 0; i < values.length; i++) {
-      if (normalizeAccessSummaryDate_(values[i][0]) === dateString) {
+      if (toDateKey_(values[i][0]) === dateString) {
         const row = i + 2;
         total += Number(values[i][1]) || 0;
         if (!firstRow) firstRow = row; else duplicates.push(row);
@@ -1426,7 +1466,7 @@ function saveTopAccessSummary() {
  * 同じ日付の集計行を1行にまとめる（setupSheets()から実行）
  *************************************************/
 function consolidateAccessSummary_() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.ACCESS_SUMMARY);
+  const sheet = getAccessLogSheet_(SHEET_NAMES.ACCESS_SUMMARY);
   if (!sheet || sheet.getLastRow() < 2) return;
 
   const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
@@ -1435,7 +1475,7 @@ function consolidateAccessSummary_() {
   const del = [];
 
   values.forEach(function(v, i) {
-    const d = normalizeAccessSummaryDate_(v[0]);
+    const d = toDateKey_(v[0]);
     if (!d) return;
 
     const row = i + 2;
@@ -1461,26 +1501,10 @@ function consolidateAccessSummary_() {
 }
 
 /*************************************************
- * アクセス集計の日付を yyyy-MM-dd に統一
- *
- * Googleスプレッドシートの日付セルは Date 型で返るため、
- * String(Date) で比較すると同じ日でも一致しません。
- *************************************************/
-function normalizeAccessSummaryDate_(value) {
-  if (!value) return '';
-
-  if (value instanceof Date && !isNaN(value.getTime())) {
-    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  }
-
-  return String(value).trim();
-}
-
-/*************************************************
  * 30日より古いアクセスログを削除（毎日3時のトリガーで実行）
  *************************************************/
 function cleanupOldAccessLogs() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.ACCESS_LOG);
+  const sheet = getAccessLogSheet_(SHEET_NAMES.ACCESS_LOG);
   if (!sheet || sheet.getLastRow() < 2) return;
 
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
