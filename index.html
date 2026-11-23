@@ -366,6 +366,23 @@
       <p class="attachment-note">PDF・Office・CSV・テキスト・画像（1回の保存で合計10MB、5ファイルまで）。既存ファイルの削除は保存時に反映されます。アップロードしたファイルは「リンクを知っている全員」が閲覧できます。</p>
     </div>
 
+    <div id="importanceGroup" class="form-group">
+
+      <label class="form-label">重要度</label>
+
+      <div class="public-options">
+        <label class="public-option">
+          <input type="radio" name="editImportance" value="1">
+          <span>重要</span>
+        </label>
+        <label class="public-option">
+          <input type="radio" name="editImportance" value="0" checked>
+          <span>通常</span>
+        </label>
+      </div>
+
+    </div>
+
     <div id="publicGroup" class="form-group">
 
       <label class="form-label">公開</label>
@@ -960,20 +977,26 @@
     }
 
     data.forEach(function(item) {
-      const card = document.createElement('details');
+      const isImportant = Number(item.重要度) === 1;
+      const card = document.createElement(isImportant ? 'div' : 'details');
       card.className = 'list-card';
+      if (isImportant) card.classList.add('list-card-important');
       card.innerHTML =
-        '<summary class="list-title">' + escapeHtml(item[titleField]) + '</summary>' +
+        (isImportant ? '<div class="list-title">' : '<summary class="list-title">') +
+        escapeHtml(item[titleField]) +
+        (isImportant ? '</div>' : '</summary>') +
         '<div class="list-details">' +
         (showDate ? '<div class="list-date">' + escapeHtml(item.日付) + '</div>' : '') +
         '<div class="list-content">' + sanitizeRichTextHtml_(item.内容) + '</div>' +
         '</div>';
-      card.addEventListener('toggle', function() {
-        if (!card.open) return;
-        document.querySelectorAll('.list-card[open]').forEach(function(openCard) {
-          if (openCard !== card) openCard.open = false;
+      if (!isImportant) {
+        card.addEventListener('toggle', function() {
+          if (!card.open) return;
+          document.querySelectorAll('.list-card[open]').forEach(function(openCard) {
+            if (openCard !== card) openCard.open = false;
+          });
         });
-      });
+      }
       const attachments = Array.isArray(item['添付ファイル']) ? item['添付ファイル'] : [];
       if (attachments.length) {
         const attachmentList = document.createElement('div');
@@ -1570,6 +1593,11 @@
       input.checked = input.value === publicValue;
     });
 
+    const importanceValue = item && Number(item.重要度) === 1 ? '1' : '0';
+    document.querySelectorAll('input[name="editImportance"]').forEach(function(input) {
+      input.checked = input.value === importanceValue;
+    });
+
     // スケジュールは日付を使わない
     document.getElementById('dateGroup').style.display = cfg.hasDate ? 'block' : 'none';
 
@@ -1759,6 +1787,7 @@
     const date = document.getElementById('editDate').value;
 
     const selectedPublicOption = document.querySelector('input[name="editPublic"]:checked');
+    const selectedImportanceOption = document.querySelector('input[name="editImportance"]:checked');
 
     const displayOrderValue = document.getElementById('editDisplayOrder').value;
     const displayOrder = Number(displayOrderValue);
@@ -1788,6 +1817,7 @@
       日付: cfg.hasDate ? date : '',
       内容: sanitizeRichTextHtml_(document.getElementById('editContent').innerHTML),
       公開: selectedPublicOption ? selectedPublicOption.value : 'TRUE',
+      重要度: selectedImportanceOption ? Number(selectedImportanceOption.value) : 0,
       表示順: displayOrder,
       '添付ファイル': pendingEditAttachments.map(function(file) {
         return { id: file.id, name: file.name };

@@ -15,9 +15,9 @@ const SHEET_NAMES = {
 };
 
 const CONTENT_SHEET_HEADERS = {
-  [SHEET_NAMES.NOTICE]: ['ID', '日付', 'タイトル', '内容', '公開', '添付ファイル'],
-  [SHEET_NAMES.EVENT]: ['ID', '日付', 'イベント名', '内容', '公開', '添付ファイル'],
-  [SHEET_NAMES.SCHEDULE]: ['ID', 'タイトル', '内容', '公開', '添付ファイル']
+  [SHEET_NAMES.NOTICE]: ['ID', '日付', 'タイトル', '内容', '重要度', '公開', '添付ファイル'],
+  [SHEET_NAMES.EVENT]: ['ID', '日付', 'イベント名', '内容', '重要度', '公開', '添付ファイル'],
+  [SHEET_NAMES.SCHEDULE]: ['ID', 'タイトル', '内容', '重要度', '公開', '添付ファイル']
 };
 
 // 種類ごとの設定（保存・削除・表示順変更で共通利用）
@@ -566,6 +566,15 @@ function getSheetData_(sheetName, includePrivate) {
 
   if (!sheet) {
     return [];
+  }
+
+  if (CONTENT_SHEET_HEADERS[sheetName]) {
+    const headerValues = sheet.getLastColumn()
+      ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+      : [];
+    if (headerValues.indexOf('重要度') === -1) {
+      ensureTimestampColumns_(sheetName, CONTENT_SHEET_HEADERS[sheetName]);
+    }
   }
 
   const values = sheet.getDataRange().getValues();
@@ -1156,6 +1165,7 @@ function saveData_(sheetName, data) {
     if (header === '公開') {
       return data[header] === true || String(data[header]).toUpperCase() === 'TRUE';
     }
+    if (header === '重要度') return Number(data[header]) === 1 ? 1 : 0;
     if (header === '登録日時') return registrationTime;
     if (header === '更新日時') return now;
     if (header === '表示順') return displayOrder;

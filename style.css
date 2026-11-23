@@ -290,6 +290,14 @@ button {
   list-style: none;
 }
 
+.list-card-important .list-title {
+  cursor: default;
+}
+
+.list-card-important .list-title::after {
+  content: none;
+}
+
 .list-title::-webkit-details-marker {
   display: none;
 }
