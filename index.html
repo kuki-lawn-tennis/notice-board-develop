@@ -1053,7 +1053,7 @@
 
           // 失敗したときも、入力したパスワードを画面に残さない
           clearAdminPasswordInput_();
-          showToast('パスワードが違います。');
+          showAlertDialog_('パスワードが違います。');
 
         }
 
@@ -2000,7 +2000,22 @@
 
     setTimeout(function() {
       toast.style.display = 'none';
-    }, 2500);
+    }, 6000);
+
+  }
+
+  /* =====================================
+     標準のダイアログ（「OK」を押すまで残るメッセージ）
+  ====================================== */
+
+  function showAlertDialog_(message) {
+
+    // 入力欄の消去などの画面の更新を先に反映してから、ダイアログを表示する
+    requestAnimationFrame(function() {
+      setTimeout(function() {
+        alert(message);
+      }, 0);
+    });
 
   }
 
