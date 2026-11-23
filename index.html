@@ -306,11 +306,6 @@
 
     <input type="hidden" id="editId">
 
-    <div id="dateGroup" class="form-group">
-      <label class="form-label">日付</label>
-      <input id="editDate" type="date">
-    </div>
-
     <div id="nameGroup" class="form-group">
       <label id="nameLabel" class="form-label">タイトル</label>
       <input id="editName" type="text">
@@ -720,9 +715,9 @@
 
   // 管理画面の種類ごとの設定
   const TYPE_CONFIG = {
-    notice:   { title: 'お知らせ管理',     dataKey: 'notices',   nameLabel: 'タイトル',   titleField: 'タイトル',   hasDate: true  },
-    event:    { title: 'イベント管理',     dataKey: 'events',    nameLabel: 'イベント名', titleField: 'イベント名', hasDate: true  },
-    schedule: { title: 'スケジュール管理', dataKey: 'schedules', nameLabel: 'タイトル',   titleField: 'タイトル',   hasDate: false }
+    notice:   { title: 'お知らせ管理',     dataKey: 'notices',   nameLabel: 'タイトル',   titleField: 'タイトル' },
+    event:    { title: 'イベント管理',     dataKey: 'events',    nameLabel: 'イベント名', titleField: 'イベント名' },
+    schedule: { title: 'スケジュール管理', dataKey: 'schedules', nameLabel: 'タイトル',   titleField: 'タイトル' }
   };
 
   // 現在の管理画面で扱っているデータ配列を返す
@@ -797,9 +792,9 @@
         applySettings(data.settings);
         applyBannerMessage_(data.bannerMessage);
 
-        renderPublicList_(data.notices, 'noticeList', 'タイトル', 'お知らせはありません。', true);
-        renderPublicList_(data.events, 'eventList', 'イベント名', 'イベント情報はありません。', true);
-        renderPublicList_(data.schedules, 'scheduleList', 'タイトル', 'スケジュールはありません。', false);
+        renderPublicList_(data.notices, 'noticeList', 'タイトル', 'お知らせはありません。');
+        renderPublicList_(data.events, 'eventList', 'イベント名', 'イベント情報はありません。');
+        renderPublicList_(data.schedules, 'scheduleList', 'タイトル', 'スケジュールはありません。');
 
       })
       .catch(function(error) {
@@ -974,7 +969,7 @@
      公開リスト表示
   ====================================== */
 
-  function renderPublicList_(data, containerId, titleField, emptyMessage, showDate) {
+  function renderPublicList_(data, containerId, titleField, emptyMessage) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
 
@@ -993,7 +988,6 @@
         escapeHtml(item[titleField]) +
         (isImportant ? '</div>' : '</summary>') +
         '<div class="list-details">' +
-        (showDate ? '<div class="list-date">' + escapeHtml(item.日付) + '</div>' : '') +
         '<div class="list-content">' + sanitizeRichTextHtml_(item.内容) + '</div>' +
         '</div>';
       if (!isImportant) {
@@ -1193,7 +1187,6 @@
         '<div class="admin-list-date">表示順：' +
           escapeHtml(item.表示順 == null || item.表示順 === '' ? '未設定' : item.表示順) +
           (isHidden ? ' (非公開設定中)' : ' (公開中)') + '</div>' +
-        (cfg.hasDate ? '<div class="admin-list-date">' + escapeHtml(item.日付) + '</div>' : '') +
         (title ? '<div class="admin-list-title">' + escapeHtml(title) + '</div>' : '') +
         '<div class="admin-actions"></div>';
 
@@ -1573,7 +1566,6 @@
       : null;
 
     document.getElementById('editId').value = item ? item.ID : '';
-    document.getElementById('editDate').value = item ? (item.日付 || '') : '';
     document.getElementById('editContent').innerHTML = sanitizeRichTextHtml_(item ? item.内容 : '');
     document.getElementById('editName').value = item ? (item[cfg.titleField] || '') : '';
     document.getElementById('editFiles').value = '';
@@ -1604,9 +1596,6 @@
     document.querySelectorAll('input[name="editImportance"]').forEach(function(input) {
       input.checked = input.value === importanceValue;
     });
-
-    // スケジュールは日付を使わない
-    document.getElementById('dateGroup').style.display = cfg.hasDate ? 'block' : 'none';
 
     document.getElementById('modalTitle').textContent = item ? '編集' : '新規追加';
 
@@ -1801,8 +1790,6 @@
 
     const cfg = TYPE_CONFIG[currentManager];
 
-    const date = document.getElementById('editDate').value;
-
     const selectedPublicOption = document.querySelector('input[name="editPublic"]:checked');
     const selectedImportanceOption = document.querySelector('input[name="editImportance"]:checked');
 
@@ -1810,11 +1797,6 @@
     const displayOrder = Number(displayOrderValue);
     if (displayOrderValue === '' || !Number.isInteger(displayOrder) || displayOrder < 1) {
       showToast('表示順は1以上の整数で入力してください。');
-      return;
-    }
-
-    if (cfg.hasDate && !date) {
-      showToast('日付を入力してください。');
       return;
     }
 
@@ -1831,7 +1813,6 @@
 
     const data = {
       ID: document.getElementById('editId').value,
-      日付: cfg.hasDate ? date : '',
       内容: sanitizeRichTextHtml_(document.getElementById('editContent').innerHTML),
       公開: selectedPublicOption ? selectedPublicOption.value : 'TRUE',
       重要度: selectedImportanceOption ? Number(selectedImportanceOption.value) : 0,
