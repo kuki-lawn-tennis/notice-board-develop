@@ -356,6 +356,9 @@
       </div>
       <div id="editContent" class="rich-editor" contenteditable="true" role="textbox"
            aria-multiline="true" aria-label="内容"></div>
+      <div class="content-clear-row">
+        <button type="button" class="content-clear-button" onclick="clearContentField_('editContent')">クリア</button>
+      </div>
     </div>
 
     <div id="attachmentGroup" class="form-group">
@@ -437,6 +440,9 @@
     <div class="form-group">
       <label class="form-label">ページ最上部のバナーメッセージ</label>
       <textarea id="settingBannerMessage" maxlength="100" placeholder="例：10月12日の練習は雨天のため中止です。"></textarea>
+      <div class="content-clear-row">
+        <button type="button" class="content-clear-button" onclick="clearContentField_('settingBannerMessage')">クリア</button>
+      </div>
       <small>空欄の場合、または表示期限切れの場合は「新しいお知らせがありません。」と表示します（100文字以内）。</small>
     </div>
 
@@ -1610,6 +1616,16 @@
 
   function closeModal() {
     document.getElementById('editModal').style.display = 'none';
+  }
+
+  function clearContentField_(elementId) {
+    if (!confirm('入力した内容を消します。よろしいですか？')) return;
+    const field = document.getElementById(elementId);
+    if (field.isContentEditable) {
+      field.innerHTML = '';
+    } else {
+      field.value = '';
+    }
   }
 
   function initializeRichEditor_() {
