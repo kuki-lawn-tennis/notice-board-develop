@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- 会員向けの掲示板のため、検索結果に表示しない -->
   <meta name="robots" content="noindex, nofollow">
-    
+
   <title>久喜ローンテニスクラブ掲示板</title>
 
   <link rel="stylesheet" href="style.css">
@@ -1002,10 +1002,8 @@
 
     showPage('adminLogin');
 
-    document.getElementById('adminPassword').value = '';
-
-    // ログイン画面を開くたび、パスワード表示チェックを解除する
-    resetPasswordVisibility_();
+    // ログイン画面を開くたび、入力欄を空にして、パスワード表示チェックを解除する
+    clearAdminPasswordInput_();
 
   }
 
@@ -1013,6 +1011,12 @@
     const showPasswordCheckbox = document.getElementById('showAdminPassword');
     if (showPasswordCheckbox) showPasswordCheckbox.checked = false;
     toggleAdminPasswordVisibility();
+  }
+
+  // パスワード入力欄を空にして、「パスワードを表示」のチェックも外す
+  function clearAdminPasswordInput_() {
+    document.getElementById('adminPassword').value = '';
+    resetPasswordVisibility_();
   }
 
   // チェックが入っている間だけパスワードを表示
@@ -1042,12 +1046,13 @@
         if (typeof result === 'string' && result.length >= 32) {
 
           adminToken = result;
-          document.getElementById('adminPassword').value = '';
-          resetPasswordVisibility_();
+          clearAdminPasswordInput_();
           loadAdminData();
 
         } else {
 
+          // 失敗したときも、入力したパスワードを画面に残さない
+          clearAdminPasswordInput_();
           showToast('パスワードが違います。');
 
         }
@@ -1057,6 +1062,8 @@
 
         hideLoading();
 
+        // 通信エラーなどで失敗したときも、入力したパスワードを画面に残さない
+        clearAdminPasswordInput_();
         showToast(error.message);
 
       });
