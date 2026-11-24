@@ -1,1 +1,82 @@
+name: Promote to production
 
+# 検証用リポジトリの index.html / style.css を、本番用リポジトリの main へコピーする。
+# 本番用リポジトリ側の deploy-pages.yml が、そのコミットを受けて自動で公開する。
+# 手動実行のみ。
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_message:
+        description: 本番用リポジトリのコミットメッセージ
+        required: false
+        default: 検証用リポジトリから反映
+
+permissions:
+  contents: read
+
+concurrency:
+  group: promote-to-production
+  cancel-in-progress: false
+
+env:
+  PROD_REPO: kuki-lawn-tennis/notice-board
+  PROD_BRANCH: main
+
+jobs:
+  promote:
+    # 検証用リポジトリの main ブランチ以外からは反映しない
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out staging repository
+        uses: actions/checkout@v6
+        with:
+          path: staging
+
+      - name: Check source files
+        working-directory: staging
+        run: |
+          # GAS の URL のプレースホルダーが1つだけ残っているか確認する
+          # （URL が埋め込まれたファイルを本番へコピーしてしまう事故を防ぐ）
+          python3 - <<'PY'
+          import pathlib
+
+          html = pathlib.Path("index.html").read_text(encoding="utf-8")
+          if html.count("'__GAS_WEB_APP_URL__'") != 1:
+              raise SystemExit("index.html の GAS_WEB_APP_URL プレースホルダーが1つではありません。")
+          if html.count('href="style.css"') != 1:
+              raise SystemExit("index.html の style.css のリンクが1つではありません。")
+          if not pathlib.Path("style.css").is_file():
+              raise SystemExit("style.css がありません。")
+          PY
+
+      - name: Check out production repository
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.PROD_REPO }}
+          ref: ${{ env.PROD_BRANCH }}
+          token: ${{ secrets.PROD_REPO_TOKEN }}
+          path: production
+
+      - name: Copy files
+        run: |
+          cp staging/index.html production/index.html
+          cp staging/style.css production/style.css
+
+      - name: Commit and push to production
+        working-directory: production
+        env:
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          git add index.html style.css
+          if git diff --cached --quiet; then
+            echo "本番用リポジトリとの差分がないため、コミットしません。"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "${COMMIT_MESSAGE:-検証用リポジトリから反映}" \
+                     -m "反映元: ${GITHUB_REPOSITORY}@${SOURCE_SHA}"
+          git push origin "HEAD:${PROD_BRANCH}"
