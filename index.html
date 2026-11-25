@@ -739,9 +739,6 @@
     // 公開データを取得
     loadPublicData();
 
-    // 日別集計は新しいセッションでトップを初めて表示した時だけ
-    recordTopAccessSummary_();
-
   };
 
   /* =====================================
@@ -757,22 +754,52 @@
       });
   }
 
-  // 「アクセス集計」は新しいセッションのトップ初回表示だけ
-  // 同一セッションでトップへ戻る・更新する場合は加算しない
+  // 「アクセス集計」は、端末（ブラウザー）ごとに1日1回だけ加算する。
+  // 同じ日に更新・トップへ戻る・タブを開き直しても加算しない。
+  // 日付は日本時間で判定する。
+  const ACCESS_SUMMARY_STORAGE_KEY = 'tennisBoardTopAccessSummaryDate';
+  let topAccessSummarySending = false;
+  let topAccessSummaryDate = '';   // 保存領域が使えない環境でも、画面を開いている間は重複しないための控え
+
+  // 日本時間の今日の日付（yyyy-MM-dd）
+  function getJapanDateKey_() {
+    const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    return jst.toISOString().slice(0, 10);
+  }
+
   function recordTopAccessSummary_() {
 
-    const storageKey = 'tennisBoardTopAccessSummaryLogged';
+    const today = getJapanDateKey_();
 
-    if (sessionStorage.getItem(storageKey) === '1') {
-      return;
+    let lastDate = topAccessSummaryDate;
+    if (!lastDate) {
+      try {
+        lastDate = localStorage.getItem(ACCESS_SUMMARY_STORAGE_KEY) || '';
+      } catch (error) {
+        lastDate = '';
+      }
     }
+    if (lastDate === today) return;
 
-    // 同一セッションからの連続実行を防止
-    sessionStorage.setItem(storageKey, '1');
+    // 送信中の二重実行を防止
+    if (topAccessSummarySending) return;
+    topAccessSummarySending = true;
 
     callGasApi_('saveTopAccessSummary', [])
+      .then(function() {
+        // 保存に成功したときだけ今日の日付を記録する（失敗時は次回の表示で再送する）
+        topAccessSummaryDate = today;
+        try {
+          localStorage.setItem(ACCESS_SUMMARY_STORAGE_KEY, today);
+        } catch (error) {
+          // 保存できなくても、集計自体は完了している
+        }
+      })
       .catch(function(error) {
         console.log('トップページ日別集計エラー:', error);
+      })
+      .then(function() {
+        topAccessSummarySending = false;
       });
   }
 
@@ -961,6 +988,11 @@
 
     if (pageNames[pageId]) {
       recordPageAccess_(pageNames[pageId]);
+    }
+
+    // トップを表示するたびに、新しいセッションかどうかを判定して日別集計へ加算する
+    if (pageId === 'home') {
+      recordTopAccessSummary_();
     }
 
   }
