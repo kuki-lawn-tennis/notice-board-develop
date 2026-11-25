@@ -144,7 +144,7 @@ function createSheetIfNotExists_(ss, sheetName, headers) {
  * パスワードそのものはブラウザーに保存せず、
  * 30分で失効するランダムなセッショントークンを返す。
  *************************************************/
-function checkAdminPassword(password) {
+function checkAdminPassword(password, userAgent) {
   const expectedPassword = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
 
   if (!expectedPassword) {
@@ -154,6 +154,7 @@ function checkAdminPassword(password) {
   }
 
   if (typeof password !== 'string' || password !== expectedPassword) {
+    recordAdminActionAccessLog_('ログイン失敗', userAgent);
     // 連続試行を少し遅らせる（本格的な試行回数制限の代替ではありません）
     Utilities.sleep(1000);
     return null;
@@ -161,6 +162,7 @@ function checkAdminPassword(password) {
 
   const token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   CacheService.getScriptCache().put('ADMIN_SESSION_' + token, '1', 1800);
+  recordAdminActionAccessLog_('ログイン成功', userAgent);
   return token;
 }
 
@@ -177,9 +179,14 @@ function requireAdmin_(token) {
 /*************************************************
  * 管理者ログアウト
  *************************************************/
-function logoutAdmin(token) {
+function logoutAdmin(token, userAgent) {
   if (typeof token === 'string' && token) {
-    CacheService.getScriptCache().remove('ADMIN_SESSION_' + token);
+    const cache = CacheService.getScriptCache();
+    const key = 'ADMIN_SESSION_' + token;
+    // 有効なセッションをログアウトしたときだけ記録する（無効なトークンでの呼び出しは記録しない）
+    const wasValid = cache.get(key) === '1';
+    cache.remove(key);
+    if (wasValid) recordAdminActionAccessLog_('ログアウト', userAgent);
   }
   return true;
 }
