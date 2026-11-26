@@ -742,13 +742,40 @@
 
     initializeRichEditor_();
 
-    // 初回表示も「トップページを表示した1回」として詳細ログに記録
-    showPage('home');
+    // 開いたURLに応じたページを表示する（# が無い、または不明な場合はホーム）。
+    // 初回表示も「そのページを表示した1回」として詳細ログに記録する
+    showPageFromHash_();
+    lastHash_ = location.hash;
 
     // 公開データを取得
     loadPublicData();
 
+    // どのページから開いても、1日1回の日別集計の対象にする
+    recordTopAccessSummary_();
+
   };
+
+  // ブラウザーの「戻る」「進む」、またはURLの # の書き換えに合わせて表示を切り替える
+  window.addEventListener('hashchange', function() {
+
+    // 編集・設定のウィンドウを開いている間に戻ろうとしたときは、確認する
+    if (isInputWindowOpen_()) {
+      if (!confirm('入力中の内容は保存されません。戻りますか？')) {
+        // 戻らない場合は、URLを元のページに戻す
+        try {
+          history.pushState(null, '', location.pathname + location.search + lastHash_);
+        } catch (error) {
+          // URLを戻せない環境でも、ウィンドウはそのまま残す
+        }
+        return;
+      }
+      hideEditModal_();
+      hideSettingsModal_();
+    }
+
+    showPageFromHash_();
+    lastHash_ = location.hash;
+  });
 
   /* =====================================
      アクセスログ
@@ -883,7 +910,92 @@
      ページ切り替え
   ====================================== */
 
-  function showPage(pageId) {
+  // ページごとのURL（# 以降）
+  // 管理者の画面は、ログインしていないと開けない（未ログインならログイン画面を出し、
+  // ログイン後に、開こうとしていた画面へ進む）
+  const MANAGER_HASH_NAMES = { notice: 'notices', event: 'events', schedule: 'schedules' };
+  const MANAGER_TYPES_BY_HASH = { notices: 'notice', events: 'event', schedules: 'schedule' };
+
+  // 直前に表示していたページのURL（確認で「戻らない」を選んだときに、URLを戻すため）
+  let lastHash_ = '';
+
+  function getHashForPage_(pageId) {
+    switch (pageId) {
+      case 'home': return '';
+      case 'notices':
+      case 'events':
+      case 'schedules':
+      case 'contact':
+        return '#' + pageId;
+      case 'adminLogin':
+        // 開こうとしている管理画面のURLを残す（ログイン後にその画面へ進むため）
+        return location.hash.indexOf('#admin') === 0 ? location.hash : '#admin';
+      case 'adminMenu': return '#admin';
+      case 'manager': return '#admin/' + MANAGER_HASH_NAMES[currentManager];
+      case 'courtDuty': return '#admin/court';
+      default: return null;
+    }
+  }
+
+  // URLの # から表示するページを決めて表示する
+  function showPageFromHash_() {
+
+    const key = location.hash.replace(/^#\/?/, '');
+
+    switch (key) {
+      case 'notices':
+      case 'events':
+      case 'schedules':
+      case 'contact':
+        showPage(key);
+        return;
+      case 'admin':
+        if (adminToken) showPage('adminMenu'); else showAdminLogin();
+        return;
+      case 'admin/notices':
+      case 'admin/events':
+      case 'admin/schedules':
+        if (adminToken) openManager(MANAGER_TYPES_BY_HASH[key.slice('admin/'.length)]); else showAdminLogin();
+        return;
+      case 'admin/court':
+        if (adminToken) openCourtDuty(); else showAdminLogin();
+        return;
+      case 'admin/settings':
+        if (adminToken) {
+          // 設定は、管理メニューの上に開くウィンドウ（URLは変えない）
+          showPage('adminMenu', true);
+          openSettings();
+        } else {
+          showAdminLogin();
+        }
+        return;
+      default:
+        showPage('home');
+    }
+  }
+
+  // URLの # を書き換える（履歴に追加するので、「戻る」で前の画面に戻れる）
+  function setUrlHash_(hash) {
+    if (hash === null || hash === location.hash) {
+      lastHash_ = location.hash;
+      return;
+    }
+    try {
+      history.pushState(null, '', location.pathname + location.search + hash);
+    } catch (error) {
+      // URLを書き換えられない環境でも、画面の切り替えは続ける
+    }
+    lastHash_ = location.hash;
+  }
+
+  // 編集・設定のウィンドウが開いているか
+  function isInputWindowOpen_() {
+    return document.getElementById('editModal').style.display === 'block' ||
+      document.getElementById('settingsModal').style.display === 'block';
+  }
+
+  // keepUrl: true のときは、URLを変えない（URLから開いたときなど）
+  function showPage(pageId, keepUrl) {
 
     document.querySelectorAll('.page').forEach(function(page) {
       page.classList.remove('active');
@@ -894,6 +1006,8 @@
     if (page) {
       page.classList.add('active');
     }
+
+    if (!keepUrl) setUrlHash_(getHashForPage_(pageId));
 
     window.scrollTo(0, 0);
 
@@ -1030,7 +1144,8 @@
 
           adminToken = result;
           clearAdminPasswordInput_();
-          loadAdminData();
+          // ログイン後は、開こうとしていた管理画面（URLの # で指定）へ進む。指定がなければ管理メニュー
+          loadAdminData(showPageFromHash_);
 
         } else {
 
@@ -1562,8 +1677,12 @@
 
   }
 
-  function closeModal() {
+  function hideEditModal_() {
     document.getElementById('editModal').style.display = 'none';
+  }
+
+  function closeModal() {
+    hideEditModal_();
   }
 
   function clearContentField_(elementId) {
@@ -1861,6 +1980,9 @@
 
     document.getElementById('settingsModal').style.display = 'block';
 
+    // 設定のウィンドウを開いたら、URLに反映する
+    setUrlHash_('#admin/settings');
+
   }
 
   // 表示期限日が本日以前なら、バナーが表示されない旨の注意を出す（目安。判定の本体はサーバー側）
@@ -1875,8 +1997,14 @@
       endDate && endDate < today ? 'block' : 'none';
   }
 
-  function closeSettingsModal() {
+  function hideSettingsModal_() {
     document.getElementById('settingsModal').style.display = 'none';
+  }
+
+  function closeSettingsModal() {
+    hideSettingsModal_();
+    // 設定のウィンドウを閉じたら、URLを管理メニューに戻す
+    if (location.hash === '#admin/settings') setUrlHash_('#admin');
   }
 
   function saveSettings() {
