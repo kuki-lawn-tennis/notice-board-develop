@@ -1,0 +1,25 @@
+{
+  "name": "久喜ローンテニスクラブ掲示板",
+  "short_name": "久喜LTC掲示板",
+  "description": "久喜ローンテニスクラブの会員向け掲示板",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f8",
+  "theme_color": "#28784b",
+  "icons": [
+    {
+      "src": "images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
