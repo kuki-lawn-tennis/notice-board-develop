@@ -28,9 +28,9 @@
     <div class="hero">
 
       <img id="heroImage"
-           referrerpolicy="no-referrer"
-           src=""
-           alt="久喜ローンテニスクラブ">
+           src="TopPageImage.jpeg"
+           alt="久喜ローンテニスクラブ"
+           onerror="this.style.display='none'">
 
       <div class="hero-overlay">
         <div id="heroTitle" class="hero-title">久喜ローンテニスクラブ</div>
@@ -861,94 +861,12 @@
     document.getElementById('heroSubtitle').textContent =
       settings['キャッチコピー'] || 'みんなで楽しくテニスを！！';
 
-    /* トップ画像 */
-
-    const heroImage = document.getElementById('heroImage');
-
-    heroImage.removeAttribute('src');
-    heroImage.style.display = 'none';
-    heroImage.referrerPolicy = 'no-referrer';
-
-    if (settings['トップ画像ID']) {
-
-      // GASから画像本体を取得（Base64）
-      loadHeroImageFromServer_(heroImage, settings['トップ画像URL']);
-    }
-
     /* 連絡先 */
 
     const contactContent = document.getElementById('contactContent');
     const contact = settings['連絡先'] || '';
     contactContent.textContent = contact || '連絡先は登録されていません。';
     contactContent.className = contact ? 'contact-card' : 'empty';
-
-  }
-
-  /* =====================================
-     トップ画像：GAS経由（Base64）で取得
-  ====================================== */
-
-  function loadHeroImageFromServer_(heroImage, fallbackUrl) {
-
-    callGasApi_('getTopImageDataUrl', [])
-      .then(function(result) {
-
-        if (result && result.success && result.dataUrl) {
-
-          heroImage.onload = function() {
-            heroImage.style.display = 'block';
-          };
-
-          heroImage.onerror = function() {
-            loadHeroImageFallback_(heroImage, fallbackUrl);
-          };
-
-          heroImage.src = result.dataUrl;
-
-        } else {
-
-          let errorWasReported = false;
-          if (result && result.message) {
-            console.error('トップ画像エラー:', result.message, result.detail || '');
-            showToast(result.message);
-            errorWasReported = true;
-          }
-
-          loadHeroImageFallback_(heroImage, fallbackUrl, errorWasReported);
-        }
-      })
-      .catch(function() {
-
-        console.error('トップ画像の取得に失敗しました（通信エラー・サイズ超過の可能性）');
-
-        loadHeroImageFallback_(heroImage, fallbackUrl);
-      });
-  }
-
-  /* =====================================
-     トップ画像フォールバック
-  ====================================== */
-
-  function loadHeroImageFallback_(imageElement, imageUrl, suppressErrorToast) {
-
-    if (!imageUrl) {
-      imageElement.style.display = 'none';
-      return;
-    }
-
-    imageElement.onload = function() {
-      imageElement.style.display = 'block';
-    };
-
-    imageElement.onerror = function() {
-      imageElement.style.display = 'none';
-      if (!suppressErrorToast) {
-        showToast('トップ画像を表示できませんでした。');
-      }
-    };
-
-    imageElement.referrerPolicy = 'no-referrer';
-    imageElement.src = imageUrl;
 
   }
 
