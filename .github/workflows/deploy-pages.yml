@@ -7,7 +7,8 @@ on:
     paths:
       - index.html
       - style.css
-      - TopPageImage.jpeg
+      - manifest.json
+      - images/**
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 
@@ -86,12 +87,12 @@ jobs:
 
           index = pathlib.Path("index.html")
           html = index.read_text(encoding="utf-8")
-          src = 'src="TopPageImage.jpeg"'
+          src = 'src="images/TopPageImage.jpeg"'
           if html.count(src) != 1:
-              raise SystemExit("Expected exactly one TopPageImage.jpeg reference in index.html.")
+              raise SystemExit("Expected exactly one images/TopPageImage.jpeg reference in index.html.")
 
           version = os.environ["ASSET_VERSION"][:12]
-          index.write_text(html.replace(src, f'src="TopPageImage.jpeg?v={version}"'), encoding="utf-8")
+          index.write_text(html.replace(src, f'src="images/TopPageImage.jpeg?v={version}"'), encoding="utf-8")
           PY
 
       - name: Prepare Pages artifact
@@ -99,7 +100,8 @@ jobs:
           mkdir _site
           cp index.html _site/index.html
           cp style.css _site/style.css
-          cp TopPageImage.jpeg _site/TopPageImage.jpeg
+          cp manifest.json _site/manifest.json
+          cp -r images _site/images
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
