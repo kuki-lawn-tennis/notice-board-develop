@@ -1,6 +1,6 @@
 name: Promote to production
 
-# 検証用リポジトリの index.html / style.css / gas/Code.js / gas/ApiBridge.html を、
+# 検証用リポジトリの index.html / style.css / manifest.json / gas/Code.js / gas/ApiBridge.html を、
 # 本番用リポジトリの main へコピーする。
 # 本番用リポジトリ側の deploy-pages.yml が、index.html / style.css の変更を受けて自動で公開する。
 # gas フォルダのファイルは保存するだけで、公開はされない（GAS への反映は手作業）。
@@ -49,7 +49,7 @@ jobs:
               raise SystemExit("index.html の GAS_WEB_APP_URL プレースホルダーが1つではありません。")
           if html.count('href="style.css"') != 1:
               raise SystemExit("index.html の style.css のリンクが1つではありません。")
-          for name in ("style.css", "gas/Code.js", "gas/ApiBridge.html"):
+          for name in ("style.css", "manifest.json", "gas/Code.js", "gas/ApiBridge.html"):
               if not pathlib.Path(name).is_file():
                   raise SystemExit(name + " がありません。")
           PY
@@ -66,6 +66,7 @@ jobs:
         run: |
           cp staging/index.html production/index.html
           cp staging/style.css production/style.css
+          cp staging/manifest.json production/manifest.json
           cp staging/gas/Code.js production/gas/Code.js
           cp staging/gas/ApiBridge.html production/gas/ApiBridge.html
 
@@ -75,7 +76,7 @@ jobs:
           COMMIT_MESSAGE: ${{ inputs.commit_message }}
           SOURCE_SHA: ${{ github.sha }}
         run: |
-          git add index.html style.css gas/Code.js gas/ApiBridge.html
+          git add index.html style.css manifest.json gas/Code.js gas/ApiBridge.html
           if git diff --cached --quiet; then
             echo "本番用リポジトリとの差分がないため、コミットしません。"
             exit 0
