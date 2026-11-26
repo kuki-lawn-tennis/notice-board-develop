@@ -462,7 +462,9 @@
      Loading
 ====================================== -->
 
-<div id="loading" class="loading">処理中...</div>
+<div id="loading" class="loading">
+  <div class="loading-box">処理中...</div>
+</div>
 
 <!-- =====================================
      Toast
@@ -1957,12 +1959,29 @@
      Loading
   ====================================== */
 
+  // 処理中は、画面全体を覆って（マウス・タッチ操作）、
+  // 後ろの画面にキーボードでも触れないようにする（inert）
+  const LOADING_LOCKED_SELECTORS = ['.container', '#editModal', '#settingsModal'];
+
+  function setPageLocked_(locked) {
+    LOADING_LOCKED_SELECTORS.forEach(function(selector) {
+      const element = document.querySelector(selector);
+      if (element) element.inert = locked;
+    });
+  }
+
   function showLoading() {
-    document.getElementById('loading').style.display = 'block';
+    // 処理中にキーボード入力（Enterなど）が後ろの画面に届かないよう、フォーカスを外す
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
+    setPageLocked_(true);
+    document.getElementById('loading').style.display = 'flex';
   }
 
   function hideLoading() {
     document.getElementById('loading').style.display = 'none';
+    setPageLocked_(false);
   }
 
   /* =====================================
