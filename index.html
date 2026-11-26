@@ -1763,6 +1763,11 @@
       return;
     }
 
+    // 入力内容の確認が済んでから、保存してよいか確認する
+    if (!confirm('保存しますか？')) {
+      return;
+    }
+
     const data = {
       ID: document.getElementById('editId').value,
       内容: sanitizeRichTextHtml_(document.getElementById('editContent').innerHTML),
@@ -1868,6 +1873,10 @@
   }
 
   function saveSettings() {
+
+    if (!confirm('保存しますか？')) {
+      return;
+    }
 
     const settings = {
       'クラブ名': document.getElementById('settingClubName').value,
