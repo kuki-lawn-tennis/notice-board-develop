@@ -224,33 +224,7 @@ function getSettings_() {
     }
   }
 
-  // トップ画像IDはスプレッドシートではなくスクリプトプロパティ
-  // TOP_PAGE_IMAGE_ID から取得する（シート上の同名項目は無視）
-  const topImageId = getTopImageId_();
-
-  settings['トップ画像ID'] = topImageId;
-
-  // 予備のGoogle Drive画像URL。実際の表示は getTopImageDataUrl() を優先する。
-  settings['トップ画像URL'] = topImageId
-    ? 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(topImageId) + '&sz=w1600'
-    : '';
-
   return settings;
-}
-
-/*************************************************
- * トップ画像IDを取得
- *
- * スクリプトプロパティ TOP_PAGE_IMAGE_ID に設定した
- * DriveのファイルIDを使用（URLを貼り付けても可）
- *************************************************/
-function getTopImageId_() {
-
-  const value = PropertiesService
-    .getScriptProperties()
-    .getProperty('TOP_PAGE_IMAGE_ID');
-
-  return normalizeDriveFileId_(value);
 }
 
 /*************************************************
@@ -268,113 +242,6 @@ function normalizeDriveFileId_(value) {
   const match = text.match(/[-\w]{25,}/);
 
   return match ? match[0] : text;
-}
-
-/*************************************************
- * トップ画像をData URLとして取得
- *
- * Webアプリ利用者側のGoogle Drive公開設定に依存せず、
- * GASの実行ユーザーが参照できるDrive画像をブラウザへ
- * 直接渡します。
- *************************************************/
-function getTopImageDataUrl() {
-
-  // セキュリティのため、引数は受け取らずスクリプトプロパティのIDのみを使用
-  const normalizedId = getTopImageId_();
-
-  if (!normalizedId) {
-    return {
-      success: false,
-      message: 'トップ画像IDが設定されていません。スクリプトプロパティ TOP_PAGE_IMAGE_ID にDriveのファイルIDを設定してください。'
-    };
-  }
-
-  try {
-
-    const file = DriveApp.getFileById(normalizedId);
-    const mimeType = file.getMimeType();
-
-    if (!mimeType || mimeType.indexOf('image/') !== 0) {
-      return {
-        success: false,
-        message: '指定されたファイルが画像ではありません。'
-      };
-    }
-
-    // iPhoneなどのモバイルでは、数MBの元画像（特にHEIC）は表示できないことがあるため、
-    // Driveが生成する縮小版（JPEG/PNG）を優先する。
-    let blob = null;
-
-    try {
-      blob = fetchResizedImageBlob_(normalizedId);
-    } catch (e) {
-      blob = null;
-    }
-
-    if (!blob) {
-
-      // 縮小版が取れない場合は元画像を使う。ただし大きすぎる/HEIC系は返さない
-      const originalSize = file.getSize();
-
-      if (originalSize > 1.5 * 1024 * 1024 || /heic|heif/i.test(mimeType)) {
-        return {
-          success: false,
-          message: '画像が大きすぎるか形式が非対応です。1MB以下のJPEG/PNGに変換して差し替えてください。',
-          detail: mimeType + ' / ' + Math.round(originalSize / 1024) + 'KB'
-        };
-      }
-
-      blob = file.getBlob();
-    }
-
-    const bytes = blob.getBytes();
-    const outMime = blob.getContentType() || mimeType;
-
-    return {
-      success: true,
-      mimeType: outMime,
-      dataUrl: 'data:' + outMime + ';base64,' + Utilities.base64Encode(bytes),
-      fileName: file.getName(),
-      size: bytes.length
-    };
-
-  } catch (error) {
-
-    return {
-      success: false,
-      message: '画像を読み込めませんでした。DriveファイルIDとGAS実行ユーザーの権限を確認してください。',
-      detail: error.message
-    };
-  }
-}
-
-/*************************************************
- * Driveの縮小版画像を取得（幅1200px・JPEG/PNG）
- *
- * 取得できない場合は null を返す
- *************************************************/
-function fetchResizedImageBlob_(fileId) {
-
-  const url = 'https://drive.google.com/thumbnail?id=' +
-    encodeURIComponent(fileId) +
-    '&sz=w1200';
-
-  const response = UrlFetchApp.fetch(url, {
-    headers: {
-      Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
-    },
-    muteHttpExceptions: true,
-    followRedirects: true
-  });
-
-  if (response.getResponseCode() !== 200) {
-    return null;
-  }
-
-  const blob = response.getBlob();
-  const type = blob.getContentType();
-
-  return type && type.indexOf('image/') === 0 ? blob : null;
 }
 
 /*************************************************
@@ -409,11 +276,6 @@ function saveSettings(token, settings, userAgent) {
   const values = sheet.getDataRange().getValues();
 
   Object.keys(settings).forEach(key => {
-
-    // トップ画像IDのみスクリプトプロパティで管理
-    if (key === 'トップ画像ID') {
-      return;
-    }
 
     let row = 0;
     for (let i = 1; i < values.length; i++) {
@@ -529,9 +391,7 @@ function getPublicSettings_() {
     'クラブ名',
     'キャッチコピー',
     '連絡先',
-    '連絡先説明',
-    'トップ画像ID',
-    'トップ画像URL'
+    '連絡先説明'
   ];
   const result = {};
   allowedKeys.forEach(function(key) {
