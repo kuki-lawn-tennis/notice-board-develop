@@ -110,7 +110,7 @@ button {
   background: #fff3cd;
   color: #664d03;
   border-bottom: 1px solid #ffecb5;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -194,7 +194,7 @@ button {
   gap: 6px;
   padding: 6px 0;
   color: #777;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: bold;
   letter-spacing: 1px;
   cursor: pointer;
