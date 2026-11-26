@@ -1094,7 +1094,7 @@
 
     showLoading();
 
-    callGasApi_('checkAdminPassword', [password])
+    callGasApi_('checkAdminPassword', [password, navigator.userAgent])
       .then(function(result) {
 
         hideLoading();
@@ -1991,7 +1991,7 @@
 
     // サーバー側のセッションを失効させる
     if (adminToken) {
-      callGasApi_('logoutAdmin', [adminToken])
+      callGasApi_('logoutAdmin', [adminToken, navigator.userAgent])
         .catch(function(error) {
           console.error('管理者セッションの失効に失敗しました:', error);
         });
