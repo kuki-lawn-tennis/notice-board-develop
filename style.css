@@ -867,18 +867,23 @@ textarea {
    ローディング
 ========================= */
 
+/* 処理中は画面全体を覆い、後ろの画面を操作できないようにする */
 .loading {
-  font-size: 16px;
   position: fixed;
   z-index: 2000;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  background: rgba(0,0,0,.25);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-box {
   background: rgba(0,0,0,.8);
   color: white;
+  font-size: 16px;
   padding: 15px 22px;
   border-radius: 10px;
-  display: none;
 }
 
 /* =========================
