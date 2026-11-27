@@ -88,7 +88,7 @@
 
     <!-- 便利ツールのリンク（ホーム画面のフッター）
          ※ 名称とURLは実際のものに書き換えてください -->
-    <details class="home-footer" close>
+    <details class="home-footer">
       <summary class="home-footer-title">便利ツール</summary>
       <div class="home-footer-links">
         <a class="home-footer-link" href="https://kuki-lawn-tennis.github.io/random/" target="_blank" rel="noopener noreferrer">乱数表</a>
@@ -1351,6 +1351,7 @@
   function autoScrollAdminListWhileDragging() {
     const state = adminDragState;
     if (!state) return;
+    state.scrollFrame = null;
 
     const edgeSize = 72;
     const maxSpeed = 14;
@@ -1366,9 +1367,13 @@
     if (scrollDelta) {
       window.scrollBy(0, scrollDelta);
       moveAdminCardToPointer_(state, state.clientX, state.clientY);
+      scheduleAdminAutoScroll_();
     }
+  }
 
-    state.scrollFrame = requestAnimationFrame(autoScrollAdminListWhileDragging);
+  function scheduleAdminAutoScroll_() {
+    if (!adminDragState || adminDragState.scrollFrame !== null) return;
+    adminDragState.scrollFrame = requestAnimationFrame(autoScrollAdminListWhileDragging);
   }
 
   function moveAdminCardToPointer_(state, clientX, clientY) {
@@ -1379,8 +1384,11 @@
     const insertAfter = clientY > rect.top + rect.height / 2;
     state.container.insertBefore(state.card, insertAfter ? targetCard.nextSibling : targetCard);
     state.moved = true;
-    state.container.querySelectorAll('.admin-list-card').forEach(function(node) { node.classList.remove('drag-over'); });
-    targetCard.classList.add('drag-over');
+    if (state.dragOverCard !== targetCard) {
+      if (state.dragOverCard) state.dragOverCard.classList.remove('drag-over');
+      targetCard.classList.add('drag-over');
+      state.dragOverCard = targetCard;
+    }
   }
 
   function startAdminCardDrag(event) {
@@ -1391,14 +1399,14 @@
     const container = document.getElementById('managerList');
     if (!card || !container) return;
     event.preventDefault();
-    adminDragState = { card: card, container: container, pointerId: event.pointerId, moved: false, clientX: event.clientX, clientY: event.clientY, scrollFrame: null };
+    adminDragState = { card: card, container: container, pointerId: event.pointerId, moved: false, clientX: event.clientX, clientY: event.clientY, scrollFrame: null, dragOverCard: null };
     card.classList.add('dragging');
     // Pointer Captureを使うと、一部のiPhoneブラウザーや埋め込み表示で
     // ドラッグ中の座標取得が不安定になるため、document側でイベントを追跡する。
     document.addEventListener('pointermove', moveAdminCardDrag, { passive: false });
     document.addEventListener('pointerup', finishAdminCardDrag);
     document.addEventListener('pointercancel', cancelAdminCardDrag);
-    adminDragState.scrollFrame = requestAnimationFrame(autoScrollAdminListWhileDragging);
+    scheduleAdminAutoScroll_();
   }
 
   function startAdminCardTouchDrag(event) {
@@ -1416,13 +1424,14 @@
       clientX: touch.clientX,
       clientY: touch.clientY,
       moved: false,
-      scrollFrame: null
+      scrollFrame: null,
+      dragOverCard: null
     };
     card.classList.add('dragging');
     document.addEventListener('touchmove', moveAdminCardTouchDrag, { passive: false });
     document.addEventListener('touchend', finishAdminCardTouchDrag);
     document.addEventListener('touchcancel', cancelAdminCardTouchDrag);
-    adminDragState.scrollFrame = requestAnimationFrame(autoScrollAdminListWhileDragging);
+    scheduleAdminAutoScroll_();
   }
 
   function findAdminDragTouch_(event) {
@@ -1442,6 +1451,7 @@
     adminDragState.clientX = touch.clientX;
     adminDragState.clientY = touch.clientY;
     moveAdminCardToPointer_(adminDragState, touch.clientX, touch.clientY);
+    scheduleAdminAutoScroll_();
   }
 
   function finishAdminCardTouchDrag(event) {
@@ -1461,15 +1471,16 @@
     adminDragState.clientX = event.clientX;
     adminDragState.clientY = event.clientY;
     moveAdminCardToPointer_(adminDragState, event.clientX, event.clientY);
+    scheduleAdminAutoScroll_();
   }
 
   // ドラッグ終了時の後始末（表示・イベント・状態をまとめて解除）。終了した状態を返す。
   function cleanupAdminDrag_() {
     const state = adminDragState;
     if (!state) return null;
-    if (state.scrollFrame) cancelAnimationFrame(state.scrollFrame);
+    if (state.scrollFrame !== null) cancelAnimationFrame(state.scrollFrame);
     state.card.classList.remove('dragging');
-    state.container.querySelectorAll('.admin-list-card').forEach(function(node) { node.classList.remove('drag-over'); });
+    if (state.dragOverCard) state.dragOverCard.classList.remove('drag-over');
     document.removeEventListener('pointermove', moveAdminCardDrag);
     document.removeEventListener('pointerup', finishAdminCardDrag);
     document.removeEventListener('pointercancel', cancelAdminCardDrag);
