@@ -470,6 +470,20 @@
      Loading
 ====================================== -->
 
+<!-- =====================================
+     確認・お知らせのダイアログ（ブラウザー標準のダイアログは使わない）
+====================================== -->
+
+<div id="appDialog" class="app-dialog" role="alertdialog" aria-modal="true" aria-labelledby="appDialogMessage">
+  <div class="app-dialog-box">
+    <div id="appDialogMessage" class="app-dialog-message"></div>
+    <div class="app-dialog-actions">
+      <button type="button" id="appDialogCancel" class="secondary-button">キャンセル</button>
+      <button type="button" id="appDialogOk" class="primary-button">OK</button>
+    </div>
+  </div>
+</div>
+
 <div id="loading" class="loading">
   <div class="loading-box">処理中...</div>
 </div>
@@ -756,45 +770,68 @@
 
   };
 
+  // 現在のページのURLに戻す（履歴に1つ追加する）
+  function restoreUrl_() {
+    try {
+      history.pushState(null, '', location.pathname + location.search + lastHash_);
+    } catch (error) {
+      // URLを戻せない環境でも、画面はそのまま残す
+    }
+  }
+
   // ブラウザーの「戻る」「進む」、またはURLの # の書き換えに合わせて表示を切り替える
   window.addEventListener('hashchange', function() {
 
-    // 編集・設定のウィンドウを開いている間に戻ろうとしたときは、確認する
-    if (isInputWindowOpen_()) {
-      if (!confirm('入力中の内容は保存されません。戻りますか？')) {
-        // 戻らない場合は、URLを元のページに戻す
-        try {
-          history.pushState(null, '', location.pathname + location.search + lastHash_);
-        } catch (error) {
-          // URLを戻せない環境でも、ウィンドウはそのまま残す
-        }
-        return;
-      }
-      hideEditModal_();
-      hideSettingsModal_();
-    }
+    const targetHash = location.hash;
 
-    // ログイン中に、ブラウザーの「戻る」で管理画面から出るときは、ログアウトする
-    const leavingAdmin = adminToken && location.hash.indexOf('#admin') !== 0;
-    if (leavingAdmin) {
-      if (!confirm('ログアウトしますか？')) {
-        // ログアウトしない場合は、URLを管理画面に戻す
-        try {
-          history.pushState(null, '', location.pathname + location.search + lastHash_);
-        } catch (error) {
-          // URLを戻せない環境でも、管理画面はそのまま残す
-        }
-        return;
-      }
-      endAdminSession_();
-      showPageFromHash_();
-      lastHash_ = location.hash;
-      showToast('ログアウトしました。');
+    // 確認ダイアログの表示中は、移動しない
+    if (isAppDialogOpen_()) {
+      restoreUrl_();
       return;
     }
 
-    showPageFromHash_();
-    lastHash_ = location.hash;
+    // 編集・設定のウィンドウを開いている間に戻ろうとしたとき、
+    // ログイン中に管理画面から出ようとしたときは、確認する
+    const inputOpen = isInputWindowOpen_();
+    const leavingAdmin = !!adminToken && targetHash.indexOf('#admin') !== 0;
+
+    if (!inputOpen && !leavingAdmin) {
+      showPageFromHash_();
+      lastHash_ = location.hash;
+      return;
+    }
+
+    // いったん元のページのURLに戻してから、確認の結果で移動する
+    // （ブラウザーによっては、移動の途中でダイアログを出せないため）
+    restoreUrl_();
+
+    let message;
+    if (inputOpen && leavingAdmin) {
+      message = '入力中の内容は保存されません。ログアウトして戻りますか？';
+    } else if (inputOpen) {
+      message = '入力中の内容は保存されません。戻りますか？';
+    } else {
+      message = 'ログアウトしますか？';
+    }
+
+    showConfirmDialog_(message).then(function(ok) {
+      if (!ok) return;
+
+      hideEditModal_();
+      hideSettingsModal_();
+      if (leavingAdmin) endAdminSession_();
+
+      // 戻ろうとしていたページへ移動する
+      try {
+        history.pushState(null, '', location.pathname + location.search + targetHash);
+      } catch (error) {
+        // URLを書き換えられない環境でも、画面の切り替えは続ける
+      }
+      showPageFromHash_();
+      lastHash_ = location.hash;
+
+      if (leavingAdmin) showToast('ログアウトしました。');
+    });
   });
 
   /* =====================================
@@ -1621,9 +1658,12 @@
 
   function deleteCourtDutyFile(fileId, fileName) {
 
-    if (!confirm('「' + fileName + '」を削除しますか？')) {
-      return;
-    }
+    showConfirmDialog_('「' + fileName + '」を削除しますか？').then(function(ok) {
+      if (ok) executeDeleteCourtDutyFile_(fileId);
+    });
+  }
+
+  function executeDeleteCourtDutyFile_(fileId) {
 
     showLoading();
 
@@ -1706,13 +1746,15 @@
   }
 
   function clearContentField_(elementId) {
-    if (!confirm('入力した内容を消します。よろしいですか？')) return;
-    const field = document.getElementById(elementId);
-    if (field.isContentEditable) {
-      field.innerHTML = '';
-    } else {
-      field.value = '';
-    }
+    showConfirmDialog_('入力した内容を消します。よろしいですか？').then(function(ok) {
+      if (!ok) return;
+      const field = document.getElementById(elementId);
+      if (field.isContentEditable) {
+        field.innerHTML = '';
+      } else {
+        field.value = '';
+      }
+    });
   }
 
   function initializeRichEditor_() {
@@ -1852,11 +1894,13 @@
   }
 
   function removeEditAttachment_(fileId, fileName) {
-    if (!confirm('「' + fileName + '」を添付から外しますか？保存するとDriveのゴミ箱へ移動します。')) return;
-    pendingEditAttachments = pendingEditAttachments.filter(function(file) {
-      return String(file.id) !== String(fileId);
+    showConfirmDialog_('「' + fileName + '」を添付から外しますか？').then(function(ok) {
+      if (!ok) return;
+      pendingEditAttachments = pendingEditAttachments.filter(function(file) {
+        return String(file.id) !== String(fileId);
+      });
+      renderEditAttachments_(pendingEditAttachments);
     });
-    renderEditAttachments_(pendingEditAttachments);
   }
 
   function readItemAttachment_(file) {
@@ -1910,9 +1954,15 @@
     }
 
     // 入力内容の確認が済んでから、保存してよいか確認する
-    if (!confirm('保存しますか？')) {
-      return;
-    }
+    showConfirmDialog_('保存しますか？').then(function(ok) {
+      if (ok) {
+        executeSaveEdit_(cfg, selectedFiles, selectedPublicOption, selectedImportanceOption, displayOrder);
+      }
+    });
+
+  }
+
+  function executeSaveEdit_(cfg, selectedFiles, selectedPublicOption, selectedImportanceOption, displayOrder) {
 
     const data = {
       ID: document.getElementById('editId').value,
@@ -1959,9 +2009,13 @@
 
   function deleteItem(id) {
 
-    if (!confirm('このデータを削除しますか？')) {
-      return;
-    }
+    showConfirmDialog_('このデータを削除しますか？').then(function(ok) {
+      if (ok) executeDeleteItem_(id);
+    });
+
+  }
+
+  function executeDeleteItem_(id) {
 
     showLoading();
 
@@ -2029,9 +2083,13 @@
 
   function saveSettings() {
 
-    if (!confirm('保存しますか？')) {
-      return;
-    }
+    showConfirmDialog_('保存しますか？').then(function(ok) {
+      if (ok) executeSaveSettings_();
+    });
+
+  }
+
+  function executeSaveSettings_() {
 
     const settings = {
       'クラブ名': document.getElementById('settingClubName').value,
@@ -2094,16 +2152,16 @@
   function logout() {
 
     // 誤操作防止のため、ログアウト前に確認する
-    if (!confirm('ログアウトしますか？')) {
-      return;
-    }
+    showConfirmDialog_('ログアウトしますか？').then(function(ok) {
+      if (!ok) return;
 
-    endAdminSession_();
+      endAdminSession_();
 
-    // トップページへ戻る
-    showPage('home');
+      // トップページへ戻る
+      showPage('home');
 
-    showToast('ログアウトしました。');
+      showToast('ログアウトしました。');
+    });
 
   }
 
@@ -2173,19 +2231,65 @@
   }
 
   /* =====================================
-     標準のダイアログ（「OK」を押すまで残るメッセージ）
+     ダイアログ（確認・お知らせ）
+     ブラウザー標準のダイアログ（confirm / alert）は、ブラウザーによって
+     表示されないことがあるため、画面内に作ったダイアログを使う。
   ====================================== */
 
-  function showAlertDialog_(message) {
+  let appDialogResolve_ = null;
 
-    // 入力欄の消去などの画面の更新を先に反映してから、ダイアログを表示する
-    requestAnimationFrame(function() {
-      setTimeout(function() {
-        alert(message);
-      }, 0);
-    });
-
+  function isAppDialogOpen_() {
+    return document.getElementById('appDialog').style.display === 'flex';
   }
+
+  // 確認ダイアログを表示する。「OK」なら true、「キャンセル」などで閉じたら false で完了する
+  // options.cancelLabel に null を指定すると、「OK」だけのお知らせになる
+  function showConfirmDialog_(message, options) {
+
+    const opts = options || {};
+    const dialog = document.getElementById('appDialog');
+    const okButton = document.getElementById('appDialogOk');
+    const cancelButton = document.getElementById('appDialogCancel');
+
+    // すでに表示中のダイアログは、キャンセル扱いで閉じる
+    if (appDialogResolve_) closeAppDialog_(false);
+
+    document.getElementById('appDialogMessage').textContent = message;
+    okButton.textContent = opts.okLabel || 'OK';
+    cancelButton.textContent = opts.cancelLabel || 'キャンセル';
+    cancelButton.style.display = opts.cancelLabel === null ? 'none' : '';
+
+    dialog.style.display = 'flex';
+    okButton.focus();
+
+    return new Promise(function(resolve) {
+      appDialogResolve_ = resolve;
+    });
+  }
+
+  function closeAppDialog_(result) {
+    document.getElementById('appDialog').style.display = 'none';
+    const resolve = appDialogResolve_;
+    appDialogResolve_ = null;
+    if (resolve) resolve(result);
+  }
+
+  // 「OK」だけのお知らせ（入力欄の消去などの画面の更新は、先に反映済みの状態で表示される）
+  function showAlertDialog_(message) {
+    return showConfirmDialog_(message, { cancelLabel: null });
+  }
+
+  document.getElementById('appDialogOk').addEventListener('click', function() {
+    closeAppDialog_(true);
+  });
+
+  document.getElementById('appDialogCancel').addEventListener('click', function() {
+    closeAppDialog_(false);
+  });
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && isAppDialogOpen_()) closeAppDialog_(false);
+  });
 
   /* =====================================
      モーダル外クリックで閉じる
@@ -2194,7 +2298,11 @@
   window.onclick = function(event) {
 
     if (event.target.classList && event.target.classList.contains('modal')) {
-      event.target.style.display = 'none';
+      if (event.target.id === 'settingsModal') {
+        closeSettingsModal();   // URLも管理メニューに戻す
+      } else {
+        event.target.style.display = 'none';
+      }
     }
 
   };
