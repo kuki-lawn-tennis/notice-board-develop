@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <base target="_top">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -771,6 +772,25 @@
       }
       hideEditModal_();
       hideSettingsModal_();
+    }
+
+    // ログイン中に、ブラウザーの「戻る」で管理画面から出るときは、ログアウトする
+    const leavingAdmin = adminToken && location.hash.indexOf('#admin') !== 0;
+    if (leavingAdmin) {
+      if (!confirm('ログアウトしますか？')) {
+        // ログアウトしない場合は、URLを管理画面に戻す
+        try {
+          history.pushState(null, '', location.pathname + location.search + lastHash_);
+        } catch (error) {
+          // URLを戻せない環境でも、管理画面はそのまま残す
+        }
+        return;
+      }
+      endAdminSession_();
+      showPageFromHash_();
+      lastHash_ = location.hash;
+      showToast('ログアウトしました。');
+      return;
     }
 
     showPageFromHash_();
@@ -2046,12 +2066,9 @@
      ログアウト
   ====================================== */
 
-  function logout() {
-
-    // 誤操作防止のため、ログアウト前に確認する
-    if (!confirm('ログアウトしますか？')) {
-      return;
-    }
+  // サーバー側のセッションを失効させ、ブラウザー側のログイン状態と管理データを消す
+  // （画面の切り替えは行わない）
+  function endAdminSession_() {
 
     // サーバー側のセッションを失効させる
     if (adminToken) {
@@ -2066,12 +2083,22 @@
     adminData = {};
     document.getElementById('courtDutyList').innerHTML = '';
 
-    // 開いているモーダルを閉じる
-    closeModal();
-    closeSettingsModal();
+    // 開いているウィンドウを閉じる（URLは変えない）
+    hideEditModal_();
+    hideSettingsModal_();
 
     // 公開データを最新状態にする
     loadPublicData();
+  }
+
+  function logout() {
+
+    // 誤操作防止のため、ログアウト前に確認する
+    if (!confirm('ログアウトしますか？')) {
+      return;
+    }
+
+    endAdminSession_();
 
     // トップページへ戻る
     showPage('home');
