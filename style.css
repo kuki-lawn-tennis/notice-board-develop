@@ -887,6 +887,51 @@ textarea {
 }
 
 /* =========================
+   確認・お知らせのダイアログ
+========================= */
+
+.app-dialog {
+  display: none;
+  position: fixed;
+  z-index: 2500;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0,0,0,.5);
+}
+
+.app-dialog-box {
+  width: 100%;
+  max-width: 360px;
+  padding: 22px 20px 18px;
+  border-radius: 15px;
+  background: white;
+  box-shadow: 0 8px 30px rgba(0,0,0,.25);
+}
+
+.app-dialog-message {
+  font-size: 17px;
+  line-height: 1.6;
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.app-dialog-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.app-dialog-actions .primary-button,
+.app-dialog-actions .secondary-button {
+  flex: 1;
+  width: auto;
+  margin-top: 0;
+}
+
+/* =========================
    トースト
 ========================= */
 
