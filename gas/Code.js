@@ -333,26 +333,19 @@ function updateSettingsTimestamp_() {
 
 /*************************************************
  * バナー情報取得
- * 管理用「設定」シートからメッセージと表示期限日を読み取る
+ * 設定データからメッセージと表示期限日を取り出す
  * 戻り値: { message: 本文, endDate: 'yyyy-MM-dd'（未設定なら空） }
  *************************************************/
-function getBanner_() {
+function getBanner_(settings) {
   const banner = { message: '', endDate: '' };
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAMES.SETTINGS);
-  if (!sheet || sheet.getLastRow() < 2) return banner;
-
-  const range = sheet.getDataRange();
-  const values = range.getValues();
-  const displayValues = range.getDisplayValues();
-
-  for (let i = 1; i < values.length; i++) {
-    const key = String(values[i][0] || '').trim();
-    if (key === 'バナーメッセージ') {
-      banner.message = String(displayValues[i][1] || '').trim();
-    } else if (key === 'バナー表示期限日') {
-      banner.endDate = toDateKey_(values[i][1]);
+  Object.keys(settings).forEach(function(key) {
+    const normalizedKey = String(key).trim();
+    if (normalizedKey === 'バナーメッセージ') {
+      banner.message = String(settings[key] || '').trim();
+    } else if (normalizedKey === 'バナー表示期限日') {
+      banner.endDate = toDateKey_(settings[key]);
     }
-  }
+  });
   return banner;
 }
 
@@ -369,9 +362,10 @@ function isBannerExpired_(endDate) {
  * 公開データ取得
  *************************************************/
 function getPublicData() {
-  const banner = getBanner_();
+  const allSettings = getSettings_();
+  const banner = getBanner_(allSettings);
   return {
-    settings: getPublicSettings_(),
+    settings: getPublicSettings_(allSettings),
     // メッセージが空白、または表示期限切れの場合はデフォルト文言を表示
     bannerMessage: (!banner.message || isBannerExpired_(banner.endDate))
       ? DEFAULT_BANNER_MESSAGE
@@ -385,8 +379,7 @@ function getPublicData() {
 /*************************************************
  * 公開用設定：公開画面で必要な項目だけ返す
  *************************************************/
-function getPublicSettings_() {
-  const all = getSettings_();
+function getPublicSettings_(all) {
   const allowedKeys = [
     'クラブ名',
     'キャッチコピー',
@@ -407,9 +400,10 @@ function getPublicSettings_() {
  *************************************************/
 function getAdminData(token) {
   requireAdmin_(token);
-  const banner = getBanner_();
+  const settings = getSettings_();
+  const banner = getBanner_(settings);
   return {
-    settings: getSettings_(),
+    settings: settings,
     bannerMessage: banner.message,
     bannerEndDate: banner.endDate,
     notices: getSheetData_(SHEET_NAMES.NOTICE, true),
@@ -435,16 +429,12 @@ function getSheetData_(sheetName, includePrivate) {
     return [];
   }
 
-  if (CONTENT_SHEET_HEADERS[sheetName]) {
-    const headerValues = sheet.getLastColumn()
-      ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
-      : [];
-    if (headerValues.indexOf('重要度') === -1) {
-      ensureTimestampColumns_(sheetName, CONTENT_SHEET_HEADERS[sheetName]);
-    }
+  let values = sheet.getDataRange().getValues();
+  if (CONTENT_SHEET_HEADERS[sheetName] &&
+      (!values.length || values[0].indexOf('重要度') === -1)) {
+    ensureTimestampColumns_(sheetName, CONTENT_SHEET_HEADERS[sheetName]);
+    values = sheet.getDataRange().getValues();
   }
-
-  const values = sheet.getDataRange().getValues();
 
   if (values.length <= 1) {
     return [];
@@ -660,14 +650,24 @@ function saveDisplayOrder(token, type, orderedIds, userAgent) {
   });
 
   const seen = {};
+  const pendingOrders = [];
   orderedIds.forEach(function(id, index) {
     const key = String(id);
     if (seen[key]) throw new Error('重複したデータが含まれています。');
     seen[key] = true;
     const rowNumber = rowById[key];
     if (!rowNumber) throw new Error('対象データが見つかりません。画面を再読み込みしてください。');
-    sheet.getRange(rowNumber, orderColumn).setValue(index + 1);
+    pendingOrders.push({ rowIndex: rowNumber - 2, order: index + 1 });
   });
+
+  if (pendingOrders.length) {
+    const orderRange = sheet.getRange(2, orderColumn, lastRow - 1, 1);
+    const orderValues = orderRange.getValues();
+    pendingOrders.forEach(function(update) {
+      orderValues[update.rowIndex][0] = update.order;
+    });
+    orderRange.setValues(orderValues);
+  }
 
   recordAdminActionAccessLog_(cfg.label + '表示順変更完了', userAgent);
   return true;
@@ -893,12 +893,13 @@ function listCourtDutyFiles(token) {
   const files = folder.getFiles();
   while (files.hasNext()) {
     const f = files.next();
+    const updatedAt = f.getLastUpdated();
     result.push({
       id: f.getId(),
       name: f.getName(),
       size: f.getSize(),
-      updated: Utilities.formatDate(f.getLastUpdated(), tz, 'yyyy/MM/dd HH:mm'),
-      time: f.getLastUpdated().getTime()
+      updated: Utilities.formatDate(updatedAt, tz, 'yyyy/MM/dd HH:mm'),
+      time: updatedAt.getTime()
     });
   }
   result.sort(function(a, b) { return b.time - a.time; });
