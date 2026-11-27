@@ -948,7 +948,7 @@ textarea {
   font-size: 14px;
   display: none;
   white-space: normal;
-  max-width: 90%;
+  max-width: 100%;
   text-align: center;
 }
 
