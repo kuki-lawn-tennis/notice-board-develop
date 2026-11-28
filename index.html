@@ -69,6 +69,12 @@
           <div class="menu-arrow">›</div>
         </button>
 
+        <button class="menu-card" onclick="openPublicCourtDuty()">
+          <div class="menu-icon">🗒️</div>
+          <div class="menu-text">コート当番</div>
+          <div class="menu-arrow">›</div>
+        </button>
+
         <button class="menu-card" onclick="showPage('contact')">
           <div class="menu-icon">✉️</div>
           <div class="menu-text">連絡先</div>
@@ -148,6 +154,25 @@
     </div>
 
     <div id="scheduleList" class="list"></div>
+
+    <div class="page-footer">
+      <button class="secondary-button" onclick="showPage('home')">↩️ ホームに戻る</button>
+    </div>
+
+  </div>
+
+  <!-- =====================================
+       コート当番（公開：ダウンロードのみ）
+  ====================================== -->
+
+  <div id="courtPublic" class="page">
+
+    <div class="page-header">
+      <button class="back-button" onclick="showPage('home')">↩️</button>
+      <div class="page-title">コート当番</div>
+    </div>
+
+    <div id="courtPublicList" class="list"></div>
 
     <div class="page-footer">
       <button class="secondary-button" onclick="showPage('home')">↩️ ホームに戻る</button>
@@ -984,6 +1009,7 @@
       case 'schedules':
       case 'contact':
         return '#' + pageId;
+      case 'courtPublic': return '#court';
       case 'adminLogin':
         // 開こうとしている管理画面のURLを残す（ログイン後にその画面へ進むため）
         return location.hash.indexOf('#admin') === 0 ? location.hash : '#admin';
@@ -1005,6 +1031,9 @@
       case 'schedules':
       case 'contact':
         showPage(key);
+        return;
+      case 'court':
+        openPublicCourtDuty();
         return;
       case 'admin':
         if (adminToken) showPage('adminMenu'); else showAdminLogin();
@@ -1080,6 +1109,7 @@
       notices: 'お知らせ',
       events: 'イベント情報',
       schedules: 'スケジュール',
+      courtPublic: 'コート当番',
       contact: '連絡先',
       adminLogin: '管理者ログイン'
     };
@@ -1539,16 +1569,28 @@
 
   function openCourtDuty() {
     showPage('courtDuty');
-    loadCourtDutyFiles();
+    loadCourtDutyFiles(true);
   }
 
-  function loadCourtDutyFiles() {
+  // 公開画面のコート当番（ダウンロードのみ。ログイン不要）
+  function openPublicCourtDuty() {
+    showPage('courtPublic');
+    loadCourtDutyFiles(false);
+  }
 
-    const container = document.getElementById('courtDutyList');
+  // isAdmin: true＝管理画面（削除ボタンあり）／false＝公開画面（ダウンロードのみ）
+  function loadCourtDutyFiles(isAdmin) {
+
+    if (isAdmin === undefined) isAdmin = true;
+
+    const container = document.getElementById(isAdmin ? 'courtDutyList' : 'courtPublicList');
+    const request = isAdmin
+      ? callGasApi_('listCourtDutyFiles', [adminToken])
+      : callGasApi_('getPublicCourtDutyFiles', []);
 
     showLoading();
 
-    callGasApi_('listCourtDutyFiles', [adminToken])
+    request
       .then(function(files) {
 
         hideLoading();
@@ -1571,16 +1613,19 @@
           const downloadButton = document.createElement('button');
           downloadButton.className = 'court-download-button';
           downloadButton.textContent = '⬇ ダウンロード';
-          downloadButton.addEventListener('click', function() { downloadCourtDutyFile(file.id); });
-
-          const deleteButton = document.createElement('button');
-          deleteButton.className = 'court-delete-button';
-          deleteButton.textContent = '削除';
-          deleteButton.addEventListener('click', function() { deleteCourtDutyFile(file.id, file.name); });
+          downloadButton.addEventListener('click', function() { downloadCourtDutyFile(file.id, isAdmin); });
 
           const actions = document.createElement('div');
           actions.className = 'court-file-actions';
-          actions.append(downloadButton, deleteButton);
+          actions.appendChild(downloadButton);
+
+          if (isAdmin) {
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'court-delete-button';
+            deleteButton.textContent = '削除';
+            deleteButton.addEventListener('click', function() { deleteCourtDutyFile(file.id, file.name); });
+            actions.appendChild(deleteButton);
+          }
 
           card.appendChild(actions);
           container.appendChild(card);
@@ -1593,11 +1638,17 @@
       });
   }
 
-  function downloadCourtDutyFile(fileId) {
+  function downloadCourtDutyFile(fileId, isAdmin) {
+
+    if (isAdmin === undefined) isAdmin = true;
 
     showLoading();
 
-    callGasApi_('getCourtDutyFileData', [adminToken, fileId])
+    const request = isAdmin
+      ? callGasApi_('getCourtDutyFileData', [adminToken, fileId])
+      : callGasApi_('getPublicCourtDutyFileData', [fileId]);
+
+    request
       .then(function(result) {
 
         hideLoading();
@@ -1656,7 +1707,7 @@
           hideLoading();
           input.value = '';
           showToast('ファイルはアップロードされました。');
-          loadCourtDutyFiles();
+          loadCourtDutyFiles(true);
         })
         .catch(function(error) {
           hideLoading();
@@ -1682,7 +1733,7 @@
       .then(function() {
         hideLoading();
         showToast('削除しました。');
-        loadCourtDutyFiles();
+        loadCourtDutyFiles(true);
       })
       .catch(function(error) {
         hideLoading();

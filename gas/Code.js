@@ -728,7 +728,8 @@ function ensureTimestampColumns_(sheetName, baseHeaders) {
  *
  * スクリプトプロパティ COURT_DUTY_FOLDER_ID に
  * 保存先フォルダのID（またはフォルダURL）を設定する。
- * すべて管理者セッションが必要。公開画面からは使えない。
+ * 一覧取得とダウンロードは公開画面からも使える（getPublicCourtDuty～）。
+ * アップロードと削除は管理者セッションが必要。
  *************************************************/
 const COURT_DUTY_MAX_BYTES = 10 * 1024 * 1024; // 1ファイル10MBまで
 const COURT_DUTY_ALLOWED_EXT = ['pdf', 'xlsx', 'xls', 'docx', 'doc', 'csv', 'png', 'jpg', 'jpeg'];
@@ -884,9 +885,8 @@ function parseBoardAttachments_(value) {
   }
 }
 
-// ファイル一覧（更新日時の新しい順）
-function listCourtDutyFiles(token) {
-  requireAdmin_(token);
+// ファイル一覧（更新日時の新しい順）。管理画面・公開画面で共通
+function buildCourtDutyFileList_() {
   const folder = getCourtDutyFolder_();
   const tz = Session.getScriptTimeZone();
   const result = [];
@@ -906,6 +906,16 @@ function listCourtDutyFiles(token) {
   return result;
 }
 
+function listCourtDutyFiles(token) {
+  requireAdmin_(token);
+  return buildCourtDutyFileList_();
+}
+
+// 公開画面用（ログイン不要・閲覧とダウンロードのみ）
+function getPublicCourtDutyFiles() {
+  return buildCourtDutyFileList_();
+}
+
 // 保存先フォルダ内のファイルだけを返す（他フォルダのファイルは操作させない）
 function getCourtDutyFile_(folder, fileId) {
   let file;
@@ -922,9 +932,8 @@ function getCourtDutyFile_(folder, fileId) {
   throw new Error('このファイルは操作できません。');
 }
 
-// ダウンロード用にファイル本体をBase64で返す（保存先フォルダ内のファイルのみ）
-function getCourtDutyFileData(token, fileId) {
-  requireAdmin_(token);
+// ダウンロード用にファイル本体をBase64で返す（保存先フォルダ内のファイルのみ）。管理画面・公開画面で共通
+function buildCourtDutyFileData_(fileId) {
   const file = getCourtDutyFile_(getCourtDutyFolder_(), fileId);
   if (file.getSize() > COURT_DUTY_MAX_BYTES) throw new Error('ファイルが大きすぎます（10MBまで）。');
 
@@ -934,6 +943,16 @@ function getCourtDutyFileData(token, fileId) {
     mimeType: blob.getContentType() || 'application/octet-stream',
     base64: Utilities.base64Encode(blob.getBytes())
   };
+}
+
+function getCourtDutyFileData(token, fileId) {
+  requireAdmin_(token);
+  return buildCourtDutyFileData_(fileId);
+}
+
+// 公開画面用（ログイン不要）
+function getPublicCourtDutyFileData(fileId) {
+  return buildCourtDutyFileData_(fileId);
 }
 
 // 管理画面から選んだファイルをDriveの保存先フォルダへ保存
